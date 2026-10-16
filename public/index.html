@@ -5,109 +5,104 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>CalSync · iCloud → Google</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3'/></svg>">
 <style>
-:root{
-  --bg:#f4f6fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--soft:#f1f5f9;
-  --accent:#4f46e5;--accent-ink:#fff;--accent-soft:#eef2ff;
-  --ok:#059669;--ok-soft:#ecfdf5;--warn:#d97706;--warn-soft:#fffbeb;--bad:#dc2626;--bad-soft:#fef2f2;
-  --shadow:0 1px 2px #0f172a0d,0 8px 28px #0f172a0f;--r:18px
-}
-@media (prefers-color-scheme:dark){:root{
-  --bg:#0b1020;--card:#121a2e;--ink:#e2e8f0;--muted:#94a3b8;--line:#1e293b;--soft:#182238;
-  --accent:#818cf8;--accent-ink:#0b1020;--accent-soft:#1e2448;
-  --ok:#34d399;--ok-soft:#062a20;--warn:#fbbf24;--warn-soft:#2a1f05;--bad:#f87171;--bad-soft:#2c0d0d;
-  --shadow:0 1px 2px #0006,0 10px 30px #0005
-}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 64px}
-header{display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap}
-.brand{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,#6366f1,#22c55e);box-shadow:var(--shadow)}
-h1{font-size:22px;margin:0;letter-spacing:-.4px}
+:root{--bg:#fff;--fg:#000;--muted:#6b6b6b;--line:#e5e5e5;--soft:#f5f5f5;--inv-bg:#000;--inv-fg:#fff}
+:root[data-theme="dark"]{--bg:#000;--fg:#fff;--muted:#8a8a8a;--line:#262626;--soft:#111;--inv-bg:#fff;--inv-fg:#000}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--fg:#fff;--muted:#8a8a8a;--line:#262626;--soft:#111;--inv-bg:#fff;--inv-fg:#000}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 "Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+a{color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:32px 16px 72px}
+header{display:flex;align-items:center;gap:14px;padding-bottom:22px;margin-bottom:26px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-size:18px;margin:0;letter-spacing:-.3px;font-weight:700}
 header p{margin:0;color:var(--muted);font-size:13px}
-header .grow{flex:1}
-.grid{display:grid;gap:18px;grid-template-columns:repeat(12,1fr)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px}
+.grow{flex:1}
+.grid{display:grid;gap:1px;grid-template-columns:repeat(12,1fr);background:var(--line);border:1px solid var(--line)}
+.card{background:var(--bg);padding:22px}
 .c4{grid-column:span 4}.c6{grid-column:span 6}.c8{grid-column:span 8}.c12{grid-column:span 12}
-@media (max-width:860px){.c4,.c6,.c8{grid-column:span 12}}
-h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
-.sub{color:var(--muted);font-size:13px;margin:0 0 14px}
-.stat{display:flex;flex-direction:column;gap:2px}
-.stat b{font-size:26px;letter-spacing:-.5px}
-.stat span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:4px 10px;font-size:12px;font-weight:600;background:var(--soft);color:var(--muted)}
-.chip i{width:7px;height:7px;border-radius:50%;background:currentColor}
-.chip.ok{background:var(--ok-soft);color:var(--ok)}.chip.bad{background:var(--bad-soft);color:var(--bad)}.chip.warn{background:var(--warn-soft);color:var(--warn)}
-.chip.live i{animation:pulse 1.2s infinite}
-@keyframes pulse{50%{opacity:.25}}
-label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px}
-input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:14px}
-input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;background:var(--accent);color:var(--accent-ink);transition:transform .08s,opacity .15s}
-.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.ghost{background:var(--soft);color:var(--ink)}.btn.danger{background:transparent;color:var(--bad);padding:6px 8px}
-.btn.big{padding:13px 22px;font-size:15px}
+@media (max-width:820px){.c4,.c6,.c8{grid-column:span 12}}
+h2{font-size:12px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat>span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em}
+.stat b{font-size:24px;letter-spacing:-.6px;font-weight:600}
+.stat small{color:var(--muted);font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:500;color:var(--muted)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.chip.ok{color:var(--fg)}.chip.ok i{background:var(--fg)}
+.chip.bad{color:var(--fg);border-color:var(--fg)}.chip.bad i{background:transparent;border:1px solid var(--fg)}
+.chip.warn i{background:var(--fg);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.2}}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.1em}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;font-size:14px}
+input:focus,select:focus{outline:none;border-color:var(--fg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--fg);border-radius:6px;padding:9px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;background:var(--inv-bg);color:var(--inv-fg);transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}.btn.ghost:hover{border-color:var(--fg);opacity:1}
+.btn.link{background:transparent;color:var(--muted);border-color:transparent;padding:6px 8px}.btn.link:hover{color:var(--fg)}
+.icon{width:36px;height:36px;padding:0}
+.icon svg{width:16px;height:16px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rot .7s linear infinite;display:none}
+.spin{width:12px;height:12px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rot .7s linear infinite;display:none}
 .busy .spin{display:inline-block}
 @keyframes rot{to{transform:rotate(360deg)}}
-.acct{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px}
-.acct .ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--soft);font-size:18px}
-.acct .grow{flex:1;min-width:0}.acct b{display:block;font-size:14px}.acct small{color:var(--muted);font-size:12px}
-.cal{display:grid;grid-template-columns:auto 1fr auto minmax(140px,240px);gap:12px;align-items:center;padding:12px 4px;border-top:1px solid var(--line)}
+.acct{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:6px}
+.acct b{display:block;font-size:14px}.acct small{color:var(--muted);font-size:12px}
+.cal{display:grid;grid-template-columns:auto 1fr auto minmax(140px,240px);gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 .cal:first-child{border-top:0}
-.dot{width:12px;height:12px;border-radius:4px;background:var(--muted)}
-.cal .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.cal .name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arrow{color:var(--muted)}
-.cal.off .name,.cal.off .arrow{opacity:.45}.cal.off select{opacity:.5}
-@media (max-width:560px){.cal{grid-template-columns:auto 1fr auto}.cal select{grid-column:1/-1}.arrow{display:none}}
-.switch{position:relative;width:40px;height:24px;flex:none}
+.cal.off .name,.cal.off .arrow,.cal.off .dot{opacity:.35}.cal.off select{opacity:.4}
+@media (max-width:560px){.cal{grid-template-columns:auto 1fr}.cal select{grid-column:1/-1}.arrow{display:none}}
+.switch{position:relative;width:34px;height:20px;flex:none;margin:0}
 .switch input{opacity:0;width:0;height:0;position:absolute}
-.switch span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.2s;cursor:pointer}
-.switch span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:.2s}
-.switch input:checked+span{background:var(--accent)}
-.switch input:checked+span:before{transform:translateX(16px)}
-.switch input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
-.opt{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.switch span{position:absolute;inset:0;border-radius:99px;border:1px solid var(--line);background:var(--soft);transition:.2s;cursor:pointer}
+.switch span:before{content:"";position:absolute;width:14px;height:14px;left:2px;top:2px;border-radius:50%;background:var(--muted);transition:.2s}
+.switch input:checked+span{background:var(--fg);border-color:var(--fg)}
+.switch input:checked+span:before{transform:translateX(14px);background:var(--bg)}
+.switch input:focus-visible+span{outline:1px solid var(--fg);outline-offset:2px}
+.opt{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .opt:first-of-type{border-top:0}.opt small{display:block;color:var(--muted);font-size:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px}
-td{padding:9px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:8px}
+td{padding:10px 8px;border-top:1px solid var(--line);white-space:nowrap}
 td.msg{white-space:normal;color:var(--muted)}
 .tbl{overflow-x:auto}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;background:var(--ink);color:var(--card);font-size:14px;box-shadow:var(--shadow);transition:.25s;pointer-events:none;z-index:9}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;max-width:min(92vw,520px);padding:11px 16px;border-radius:6px;background:var(--inv-bg);color:var(--inv-fg);font-size:13px;transition:.25s;pointer-events:none;z-index:9}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.bad{background:var(--bad);color:#fff}
-.note{font-size:12px;color:var(--muted);margin-top:10px}
-.banner{display:none;margin-bottom:18px;padding:12px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:14px}
+.toast.bad{outline:2px solid var(--inv-bg);outline-offset:2px}
+.note{font-size:12px;color:var(--muted)}
+.banner{display:none;margin-bottom:18px;padding:12px 14px;border:1px solid var(--fg);border-radius:6px;font-size:13px}
 </style>
+<script>try{const t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">📅</div>
     <div><h1>CalSync</h1><p>Calendriers iCloud → Google Agenda, automatiquement.</p></div>
     <div class="grow"></div>
     <span id="runChip" class="chip"><i></i><span>Chargement…</span></span>
-    <button id="syncBtn" class="btn big"><span class="spin"></span><span>Synchroniser</span></button>
+    <button id="themeBtn" class="btn ghost icon" title="Basculer clair / sombre" aria-label="Basculer le thème"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5v11a5.5 5.5 0 0 1 0-11Z"/></svg></button>
+    <button id="syncBtn" class="btn"><span class="spin"></span><span>Synchroniser</span></button>
   </header>
 
   <div id="banner" class="banner"></div>
 
   <div class="grid">
-    <div class="card c4 stat"><span>Dernière synchro</span><b id="stLast">—</b><small id="stLastSub" class="sub" style="margin:0"></small></div>
-    <div class="card c4 stat"><span>Prochaine synchro</span><b id="stNext">—</b><small id="stNextSub" class="sub" style="margin:0"></small></div>
-    <div class="card c4 stat"><span>Événements suivis</span><b id="stTracked">0</b><small class="sub" style="margin:0">liés entre iCloud et Google</small></div>
+    <div class="card c4 stat"><span>Dernière synchro</span><b id="stLast">—</b><small id="stLastSub"></small></div>
+    <div class="card c4 stat"><span>Prochaine synchro</span><b id="stNext">—</b><small id="stNextSub"></small></div>
+    <div class="card c4 stat"><span>Événements suivis</span><b id="stTracked">0</b><small>liés entre iCloud et Google</small></div>
 
     <section class="card c6">
-      <h2>🍎 Compte iCloud</h2>
+      <h2>iCloud</h2>
       <p class="sub">Utilise un <b>mot de passe spécifique à l’app</b> (appleid.apple.com → Connexion et sécurité).</p>
       <div id="appleConnected" class="acct" hidden>
-        <div class="ico">🍎</div><div class="grow"><b>Connecté</b><small id="appleIdLabel"></small></div>
-        <button class="btn danger" id="appleLogout">Déconnecter</button>
+        <div class="grow"><b>Connecté</b><small id="appleIdLabel"></small></div>
+        <button class="btn link" id="appleLogout">Déconnecter</button>
       </div>
       <form id="appleForm">
         <label for="appleId">Identifiant Apple</label>
@@ -119,19 +114,19 @@ td.msg{white-space:normal;color:var(--muted)}
     </section>
 
     <section class="card c6">
-      <h2>🟦 Compte Google</h2>
+      <h2>Google Agenda</h2>
       <p class="sub">Autorise la création d’événements et la lecture de ta liste d’agendas.</p>
       <div id="googleConnected" class="acct" hidden>
-        <div class="ico">🗓️</div><div class="grow"><b>Connecté</b><small>Google Agenda</small></div>
+        <div class="grow"><b>Connecté</b><small>Google Agenda</small></div>
         <a class="btn ghost" href="/auth/google">Réautoriser</a>
-        <button class="btn danger" id="googleLogout">Déconnecter</button>
+        <button class="btn link" id="googleLogout">Déconnecter</button>
       </div>
       <div id="googleForm"><a class="btn" href="/auth/google">Connecter Google Agenda</a></div>
     </section>
 
     <section class="card c8">
       <div class="row" style="justify-content:space-between">
-        <div><h2>🔀 Calendriers à synchroniser</h2><p class="sub">Active les calendriers iCloud voulus et choisis l’agenda Google de destination.</p></div>
+        <div><h2>Calendriers</h2><p class="sub">Active les calendriers iCloud voulus et choisis l’agenda Google de destination.</p></div>
         <button class="btn ghost" id="reloadCals"><span class="spin"></span><span>Actualiser</span></button>
       </div>
       <div id="calList"><div class="empty">Connecte iCloud et Google pour voir tes calendriers.</div></div>
@@ -142,7 +137,7 @@ td.msg{white-space:normal;color:var(--muted)}
     </section>
 
     <section class="card c4">
-      <h2>⚙️ Options</h2>
+      <h2>Options</h2>
       <p class="sub">Appliquées aux prochaines synchronisations.</p>
       <div class="opt"><div>Synchro automatique<small>en arrière-plan</small></div><label class="switch"><input type="checkbox" id="oAuto"><span></span></label></div>
       <div class="opt"><div>Répercuter les modifications<small>titre, horaires, lieu…</small></div><label class="switch"><input type="checkbox" id="oUpdates"><span></span></label></div>
@@ -161,7 +156,7 @@ td.msg{white-space:normal;color:var(--muted)}
     </section>
 
     <section class="card c12">
-      <h2>🕘 Historique</h2>
+      <h2>Historique</h2>
       <div class="tbl"><table>
         <thead><tr><th>Date</th><th>État</th><th>Ajoutés</th><th>Modifiés</th><th>Supprimés</th><th>Inchangés</th><th>Échecs</th><th>Durée</th><th>Détail</th></tr></thead>
         <tbody id="history"><tr><td colspan="9" class="msg">Aucune synchronisation pour l’instant.</td></tr></tbody>
@@ -249,7 +244,7 @@ function renderCalendars() {
       <div class="row" style="gap:10px;min-width:0;flex-wrap:nowrap"><span class="dot" style="background:${esc(m.sourceColor || "")}"></span><span class="name">${esc(m.sourceName)}</span></div>
       <span class="arrow">→</span>
       <select data-i="${i}" data-k="targetId" ${m.enabled ? "" : "disabled"} aria-label="Agenda Google cible">
-        ${targets.map(t => `<option value="${esc(t.id)}" ${t.id === m.targetId || (t.primary && m.targetId === "primary") ? "selected" : ""}>${t.primary ? "★ " : ""}${esc(t.name)}</option>`).join("")}
+        ${targets.map(t => `<option value="${esc(t.id)}" ${t.id === m.targetId || (t.primary && m.targetId === "primary") ? "selected" : ""}>${esc(t.name)}${t.primary ? " (principal)" : ""}</option>`).join("")}
       </select>
     </div>`).join("");
 }
@@ -274,12 +269,13 @@ $("calList").addEventListener("change", e => {
 async function loadStatus() { state = await api("/api/status"); renderStatus(); }
 async function loadCalendars() {
   if (!state.appleConnected) { calendars = null; $("calList").innerHTML = `<div class="empty">Connecte ton compte iCloud pour voir tes calendriers.</div>`; return; }
+  if (!calendars) $("calList").innerHTML = `<div class="empty">Chargement des calendriers…</div>`;
   calendars = await api("/api/calendars"); buildDraft(); renderCalendars();
 }
 
 $("appleForm").onsubmit = e => { e.preventDefault(); busy($("appleSave"), async () => {
   await api("/api/apple", { method: "POST", body: JSON.stringify({ appleId: $("appleId").value, appPassword: $("appPassword").value }) });
-  $("appPassword").value = ""; toast("iCloud connecté ✓"); await loadStatus(); await loadCalendars();
+  $("appPassword").value = ""; toast("iCloud connecté"); await loadStatus(); await loadCalendars();
 }); };
 $("appleLogout").onclick = () => busy($("appleLogout"), async () => {
   if (!confirm("Supprimer les identifiants iCloud enregistrés ?")) return;
@@ -292,13 +288,13 @@ $("googleLogout").onclick = () => busy($("googleLogout"), async () => {
 $("reloadCals").onclick = () => busy($("reloadCals"), loadCalendars);
 $("saveMappings").onclick = () => busy($("saveMappings"), async () => {
   await api("/api/mappings", { method: "PUT", body: JSON.stringify({ mappings: draft }) });
-  toast(`${draft.filter(m => m.enabled).length} calendrier(s) sélectionné(s) ✓`); await loadStatus(); setDirty(false);
+  toast(`${draft.filter(m => m.enabled).length} calendrier(s) sélectionné(s)`); await loadStatus(); setDirty(false);
 });
 $("saveOptions").onclick = () => busy($("saveOptions"), async () => {
   await api("/api/options", { method: "PUT", body: JSON.stringify({
     autoSync: $("oAuto").checked, propagateUpdates: $("oUpdates").checked, propagateDeletions: $("oDeletes").checked,
     intervalMinutes: +$("oInterval").value, pastDays: +$("oPast").value, futureDays: +$("oFuture").value }) });
-  toast("Options enregistrées ✓"); await loadStatus();
+  toast("Options enregistrées"); await loadStatus();
 });
 $("oDeletes").onchange = e => { if (e.target.checked && !confirm("Les événements supprimés dans iCloud seront aussi supprimés dans Google. Continuer ?")) e.target.checked = false; };
 $("syncBtn").onclick = () => busy($("syncBtn"), async () => {
@@ -309,9 +305,16 @@ $("syncBtn").onclick = () => busy($("syncBtn"), async () => {
   } finally { await loadStatus(); }
 });
 
+$("themeBtn").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+};
+
 const q = new URLSearchParams(location.search);
 if (q.has("error")) toast("La connexion Google a échoué. Vérifie la configuration OAuth.", true);
-if (q.get("google") === "connected") toast("Google connecté ✓");
+if (q.get("google") === "connected") toast("Google connecté");
 if (q.size) history.replaceState(null, "", "/");
 
 (async () => {
