@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sync iCloud → Google Agenda</title>
+<style>
+:root{color-scheme:light;--ink:#172033;--muted:#667085;--line:#e5e7eb;--blue:#245ce2}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:linear-gradient(135deg,#f2f6ff,#f6fbf8);font-family:system-ui,-apple-system,sans-serif;color:var(--ink)}
+main{width:min(100%,570px);background:#fff;border:1px solid var(--line);border-radius:24px;padding:clamp(22px,5vw,34px);box-shadow:0 18px 60px #18264a12}
+.logo{width:54px;height:54px;border-radius:16px;background:#e9efff;display:grid;place-items:center;font-size:27px}
+h1{font-size:26px;letter-spacing:-.7px;margin:18px 0 8px}p{color:var(--muted);font-size:14px;line-height:1.55;margin:0 0 18px}
+.section{border-top:1px solid #eef0f4;padding:19px 0 2px;margin-top:15px}.section h2{font-size:16px;margin:0 0 7px}
+label{display:block;font-size:13px;font-weight:650;margin:13px 0 6px}input{width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:10px;font:inherit;font-size:14px}
+button,.link{display:block;width:100%;border:0;border-radius:11px;padding:13px 15px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;margin-top:12px}
+button{background:var(--blue);color:white}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#f2f4f7;color:#344054}
+small{display:block;color:var(--muted);line-height:1.5;margin-top:7px}.state{margin-top:16px;padding:13px;border-radius:10px;background:#f8fafc;white-space:pre-wrap;line-height:1.5;font-size:13px;display:none}.good{background:#ecfdf3;color:#067647}.bad{background:#fef3f2;color:#b42318}.pill{display:inline-block;border-radius:20px;background:#f2f4f7;padding:5px 9px;font-size:12px;color:#475467;margin:0 4px 4px 0}
+</style>
+</head>
+<body><main>
+<div class="logo">↔️</div><h1>iCloud → Google Agenda</h1>
+<p>Connecte tes calendriers Apple une fois. L’application vérifie ensuite automatiquement les événements iCloud et les importe dans ton agenda Google principal.</p>
+<div><span id="applePill" class="pill">iCloud : à connecter</span><span id="googlePill" class="pill">Google : à connecter</span></div>
+
+<section class="section">
+<h2>1. Connecter Apple / iCloud</h2>
+<p>Utilise un <b>mot de passe spécifique à l’application</b>, pas le mot de passe principal de ton compte Apple.</p>
+<label for="appleId">Adresse du compte Apple</label><input id="appleId" type="email" autocomplete="username" placeholder="toi@icloud.com">
+<label for="appPassword">Mot de passe spécifique à l’application</label><input id="appPassword" type="password" autocomplete="off" placeholder="xxxx-xxxx-xxxx-xxxx">
+<button id="saveApple">Enregistrer les identifiants iCloud</button>
+<button id="testApple" class="secondary">Tester et afficher mes calendriers</button>
+<small>Crée ce mot de passe dans les réglages de ton compte Apple, rubrique Sécurité / Mots de passe spécifiques aux apps. Les identifiants sont chiffrés dans la base locale de cette application.</small>
+</section>
+
+<section class="section">
+<h2>2. Connecter Google Agenda</h2>
+<p>Autorise l’application à créer des événements dans ton agenda Google principal.</p>
+<a class="link secondary" href="/auth/google">Connecter mon compte Google</a>
+</section>
+
+<section class="section">
+<h2>3. Synchronisation</h2>
+<p>Une synchronisation automatique est programmée toutes les 15 minutes par défaut. Tu peux aussi la lancer maintenant.</p>
+<button id="sync">Synchroniser maintenant</button>
+<button id="refresh" class="secondary">Actualiser l’état</button>
+</section>
+<div id="status" class="state" role="status" aria-live="polite"></div>
+<small>Import unidirectionnel Apple → Google. La détection des doublons s’appuie sur l’identifiant des événements et du calendrier source. Cette version ne supprime pas les événements Google si tu les supprimes sur Apple et ne répercute pas encore les modifications des événements déjà importés.</small>
+</main>
+<script>
+const $=id=>document.getElementById(id), box=$("status");
+function show(msg,kind=""){box.style.display="block";box.className="state "+kind;box.textContent=msg}
+async function api(url,opts={}){const r=await fetch(url,opts);const d=await r.json();if(!r.ok)throw new Error(d.error||"Erreur");return d}
+async function refresh(){try{const s=await api("/api/status");$("applePill").textContent="iCloud : "+(s.appleConnected?"configuré":"à connecter");$("googlePill").textContent="Google : "+(s.googleConnected?"connecté":"à connecter");if(s.last)show(`Dernière synchronisation : ${s.last.at}\nÉtat : ${s.last.status}\n${s.last.message}\nAjoutés : ${s.last.created} · Ignorés : ${s.last.skipped} · Échecs : ${s.last.failed}`,s.last.status==="error"?"bad":"good")}catch(e){show(e.message,"bad")}}
+$("saveApple").onclick=async()=>{try{await api("/api/apple",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({appleId:$("appleId").value,appPassword:$("appPassword").value})});$("appPassword").value="";show("Identifiants enregistrés de manière chiffrée. Clique sur « Tester » pour vérifier l’accès iCloud.","good");await refresh()}catch(e){show(e.message,"bad")}};
+$("testApple").onclick=async()=>{try{const d=await api("/api/apple/test",{method:"POST"});show("Connexion iCloud réussie.\nCalendriers détectés :\n"+d.calendars.map(c=>"• "+c.displayName).join("\n"),"good");await refresh()}catch(e){show(e.message,"bad")}};
+$("sync").onclick=async()=>{const b=$("sync");b.disabled=true;b.textContent="Synchronisation…";try{const d=await api("/api/sync",{method:"POST"});show(`Synchronisation terminée.\nCalendriers iCloud : ${d.calendars}\nÉvénements ajoutés : ${d.created}\nDéjà importés : ${d.skipped}\nÉchecs : ${d.failed}` ,d.failed?"bad":"good");await refresh()}catch(e){show(e.message,"bad")}finally{b.disabled=false;b.textContent="Synchroniser maintenant"}};
+$("refresh").onclick=refresh;
+if(new URLSearchParams(location.search).has("error"))show("La connexion Google a échoué. Vérifie la configuration OAuth et réessaie.","bad");
+refresh();
+</script></body></html>
