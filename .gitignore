@@ -5,3 +5,6 @@ token.json
 *.pickle
 node_modules/
 __pycache__/
+sync.sqlite*
+*.sqlite
+*.sqlite-*
