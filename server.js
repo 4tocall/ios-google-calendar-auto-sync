@@ -72,7 +72,14 @@ function put(key, value) {
 }
 function get(key) {
   const row = db.prepare("SELECT value FROM settings WHERE key=?").get(key);
-  return row ? decrypt(row.value) : null;
+  if (!row) return null;
+  try { return decrypt(row.value); }
+  catch {
+    // Valeur chiffrée avec une autre ENCRYPTION_KEY : on l’oublie pour que l’utilisateur se reconnecte.
+    console.warn(`Réglage « ${key} » illisible avec la clé actuelle : supprimé, reconnexion nécessaire.`);
+    db.prepare("DELETE FROM settings WHERE key=?").run(key);
+    return null;
+  }
 }
 function del(key) { db.prepare("DELETE FROM settings WHERE key=?").run(key); }
 function log(status, message, s = {}) {
@@ -198,7 +205,7 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
-app.get("/api/status", (req, res) => {
+app.get("/api/status", wrap(async (req, res) => {
   const apple = get("apple_credentials");
   const history = db.prepare(`SELECT at,status,message,created,updated,deleted,skipped,failed,duration_ms
     FROM sync_log ORDER BY id DESC LIMIT 12`).all();
@@ -214,7 +221,7 @@ app.get("/api/status", (req, res) => {
     mappings: getMappings(),
     history
   });
-});
+}));
 
 // Apple : mot de passe spécifique à l’app, jamais le mot de passe principal.
 app.post("/api/apple", wrap(async (req, res) => {
