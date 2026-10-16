@@ -1,13 +1,13 @@
-# 📅 CalSync — iCloud → Google Agenda
+# CalSync — iCloud → Google Agenda
 
 Petit serveur Node.js auto‑hébergé qui copie automatiquement les événements de **tes calendriers iCloud** (ceux de l'iPhone, de l'iPad et du Mac) vers **Google Agenda**.
 
-- 🔀 **Tu choisis les calendriers** : active ou désactive chaque calendrier iCloud et choisis vers quel agenda Google il est envoyé (principal, « Travail », « Famille »…).
-- ♻️ **Modifications répercutées** : un changement de titre, d'horaire ou de lieu est mis à jour dans Google.
-- 🗑️ **Suppressions (facultatif)** : un événement supprimé dans iCloud peut aussi être supprimé dans Google.
-- ⏱️ **Synchronisation automatique** : la fréquence (5 min à 3 h) et la période couverte (jours passés et à venir) se règlent dans l'interface.
-- 🔐 **Secrets chiffrés** : les identifiants Apple et les jetons Google sont chiffrés en AES‑256‑GCM dans une base SQLite locale.
-- 🌗 **Interface moderne** : tableau de bord clair ou sombre, historique des synchronisations, mise en page adaptée au mobile.
+- **Tu choisis les calendriers** : active ou désactive chaque calendrier iCloud et choisis vers quel agenda Google il est envoyé (principal, « Travail », « Famille »…).
+- **Modifications répercutées** : un changement de titre, d'horaire ou de lieu est mis à jour dans Google.
+- **Suppressions (facultatif)** : un événement supprimé dans iCloud peut aussi être supprimé dans Google.
+- **Synchronisation automatique** : la fréquence (5 min à 3 h) et la période couverte (jours passés et à venir) se règlent dans l'interface.
+- **Secrets chiffrés** : les identifiants Apple et les jetons Google sont chiffrés en AES‑256‑GCM dans une base SQLite locale.
+- **Interface moderne** : tableau de bord clair ou sombre, historique des synchronisations, mise en page adaptée au mobile.
 
 > La synchronisation va **dans un seul sens**, d'iCloud vers Google. Les changements faits dans Google ne sont jamais renvoyés vers iCloud.
 
@@ -20,7 +20,7 @@ Petit serveur Node.js auto‑hébergé qui copie automatiquement les événement
 - Un **mot de passe spécifique à l'app** Apple ([appleid.apple.com](https://appleid.apple.com) → Connexion et sécurité → Mots de passe pour app)
 - Un **projet Google Cloud** avec l'API Google Calendar activée
 
-⚠️ Seuls les calendriers **synchronisés avec iCloud** sont accessibles. Ceux qui restent uniquement sur l'appareil (« Sur mon iPhone ») ou qui viennent d'un autre compte (Exchange, Google…) ne sont pas lus.
+> **Attention :** seuls les calendriers **synchronisés avec iCloud** sont accessibles. Ceux qui restent uniquement sur l'appareil (« Sur mon iPhone ») ou qui viennent d'un autre compte (Exchange, Google…) ne sont pas lus.
 
 ## 1. Configurer Google Cloud
 
@@ -50,7 +50,7 @@ Remplis `.env`. Pour générer `SESSION_SECRET` et `ENCRYPTION_KEY`, lance deux 
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-> 🔑 **Garde précieusement `ENCRYPTION_KEY`**. Si tu la perds, les identifiants enregistrés ne pourront plus être déchiffrés et il faudra reconnecter les deux comptes.
+> **Garde précieusement `ENCRYPTION_KEY`**. Si tu la perds, les identifiants enregistrés ne pourront plus être déchiffrés et il faudra reconnecter les deux comptes.
 
 Ensuite :
 
@@ -76,11 +76,11 @@ Si tu mets à jour depuis une ancienne version, clique sur **Réautoriser** dans
 
 | Variable | Obligatoire | Description |
 |---|---|---|
-| `GOOGLE_CLIENT_ID` | ✅ | ID client OAuth |
-| `GOOGLE_CLIENT_SECRET` | ✅ | Secret client OAuth |
-| `GOOGLE_REDIRECT_URI` | ✅ | Doit correspondre exactement à l'URI déclarée dans Google Cloud |
-| `SESSION_SECRET` | ✅ | Chaîne aléatoire pour signer les cookies de session |
-| `ENCRYPTION_KEY` | ✅ | 64 caractères hexadécimaux (clé AES‑256) |
+| `GOOGLE_CLIENT_ID` | Oui | ID client OAuth |
+| `GOOGLE_CLIENT_SECRET` | Oui | Secret client OAuth |
+| `GOOGLE_REDIRECT_URI` | Oui | Doit correspondre exactement à l'URI déclarée dans Google Cloud |
+| `SESSION_SECRET` | Oui | Chaîne aléatoire pour signer les cookies de session |
+| `ENCRYPTION_KEY` | Oui | 64 caractères hexadécimaux (clé AES‑256) |
 | `PORT` | | Port HTTP (par défaut `3000`) |
 | `SYNC_EVERY_MINUTES` | | Fréquence initiale, modifiable ensuite dans l'interface (par défaut `15`) |
 | `DB_PATH` | | Chemin de la base SQLite (par défaut `sync.sqlite`) |
