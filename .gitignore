@@ -8,3 +8,4 @@ __pycache__/
 sync.sqlite*
 *.sqlite
 *.sqlite-*
+.claude/
