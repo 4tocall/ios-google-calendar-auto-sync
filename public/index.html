@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -83,94 +83,94 @@ td.msg{white-space:normal;color:var(--muted)}
 <body>
 <div class="wrap">
   <header>
-    <div><h1>CalSync</h1><p>Calendriers iCloud → Google Agenda, automatiquement.</p></div>
+    <div><h1>CalSync</h1><p>iCloud calendars → Google Calendar, automatically.</p></div>
     <div class="grow"></div>
-    <span id="runChip" class="chip"><i></i><span>Chargement…</span></span>
-    <button id="themeBtn" class="btn ghost icon" title="Basculer clair / sombre" aria-label="Basculer le thème"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5v11a5.5 5.5 0 0 1 0-11Z"/></svg></button>
-    <button id="syncBtn" class="btn"><span class="spin"></span><span>Synchroniser</span></button>
+    <span id="runChip" class="chip"><i></i><span>Loading…</span></span>
+    <button id="themeBtn" class="btn ghost icon" title="Toggle light / dark" aria-label="Toggle theme"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 1.5v11a5.5 5.5 0 0 1 0-11Z"/></svg></button>
+    <button id="syncBtn" class="btn"><span class="spin"></span><span>Sync now</span></button>
   </header>
 
   <div id="banner" class="banner"></div>
 
   <div class="grid">
-    <div class="card c4 stat"><span>Dernière synchro</span><b id="stLast">—</b><small id="stLastSub"></small></div>
-    <div class="card c4 stat"><span>Prochaine synchro</span><b id="stNext">—</b><small id="stNextSub"></small></div>
-    <div class="card c4 stat"><span>Événements suivis</span><b id="stTracked">0</b><small>liés entre iCloud et Google</small></div>
+    <div class="card c4 stat"><span>Last sync</span><b id="stLast">—</b><small id="stLastSub"></small></div>
+    <div class="card c4 stat"><span>Next sync</span><b id="stNext">—</b><small id="stNextSub"></small></div>
+    <div class="card c4 stat"><span>Tracked events</span><b id="stTracked">0</b><small>linked between iCloud and Google</small></div>
 
     <section class="card c6">
       <h2>iCloud</h2>
-      <p class="sub">Utilise un <b>mot de passe spécifique à l’app</b> (appleid.apple.com → Connexion et sécurité).</p>
+      <p class="sub">Use an <b>app-specific password</b> (appleid.apple.com → Sign-In and Security).</p>
       <div id="appleConnected" class="acct" hidden>
-        <div class="grow"><b>Connecté</b><small id="appleIdLabel"></small></div>
-        <button class="btn link" id="appleLogout">Déconnecter</button>
+        <div class="grow"><b>Connected</b><small id="appleIdLabel"></small></div>
+        <button class="btn link" id="appleLogout">Disconnect</button>
       </div>
       <form id="appleForm">
-        <label for="appleId">Identifiant Apple</label>
-        <input id="appleId" type="email" autocomplete="username" placeholder="toi@icloud.com" required>
-        <label for="appPassword">Mot de passe spécifique à l’app</label>
+        <label for="appleId">Apple ID</label>
+        <input id="appleId" type="email" autocomplete="username" placeholder="you@icloud.com" required>
+        <label for="appPassword">App-specific password</label>
         <input id="appPassword" type="password" autocomplete="off" placeholder="xxxx-xxxx-xxxx-xxxx" required>
-        <div class="row" style="margin-top:14px"><button class="btn" id="appleSave"><span class="spin"></span><span>Connecter iCloud</span></button></div>
+        <div class="row" style="margin-top:14px"><button class="btn" id="appleSave"><span class="spin"></span><span>Connect iCloud</span></button></div>
       </form>
     </section>
 
     <section class="card c6">
-      <h2>Google Agenda</h2>
-      <p class="sub">Autorise la création d’événements et la lecture de ta liste d’agendas.</p>
+      <h2>Google Calendar</h2>
+      <p class="sub">Allows creating events and reading your calendar list.</p>
       <div id="googleConnected" class="acct" hidden>
-        <div class="grow"><b>Connecté</b><small>Google Agenda</small></div>
-        <a class="btn ghost" href="/auth/google">Réautoriser</a>
-        <button class="btn link" id="googleLogout">Déconnecter</button>
+        <div class="grow"><b>Connected</b><small>Google Calendar</small></div>
+        <a class="btn ghost" href="/auth/google">Reauthorize</a>
+        <button class="btn link" id="googleLogout">Disconnect</button>
       </div>
-      <div id="googleForm"><a class="btn" href="/auth/google">Connecter Google Agenda</a></div>
+      <div id="googleForm"><a class="btn" href="/auth/google">Connect Google Calendar</a></div>
     </section>
 
     <section class="card c8">
       <div class="row" style="justify-content:space-between">
-        <div><h2>Calendriers</h2><p class="sub">Active les calendriers iCloud voulus et choisis l’agenda Google de destination.</p></div>
-        <button class="btn ghost" id="reloadCals"><span class="spin"></span><span>Actualiser</span></button>
+        <div><h2>Calendars</h2><p class="sub">Enable the iCloud calendars you want and pick their destination Google calendar.</p></div>
+        <button class="btn ghost" id="reloadCals"><span class="spin"></span><span>Refresh</span></button>
       </div>
-      <div id="calList"><div class="empty">Connecte iCloud et Google pour voir tes calendriers.</div></div>
+      <div id="calList"><div class="empty">Connect iCloud and Google to see your calendars.</div></div>
       <div class="row" style="margin-top:14px;justify-content:flex-end">
-        <span id="dirty" class="note" hidden>Modifications non enregistrées</span>
-        <button class="btn" id="saveMappings" disabled>Enregistrer la sélection</button>
+        <span id="dirty" class="note" hidden>Unsaved changes</span>
+        <button class="btn" id="saveMappings" disabled>Save selection</button>
       </div>
     </section>
 
     <section class="card c4">
       <h2>Options</h2>
-      <p class="sub">Appliquées aux prochaines synchronisations.</p>
-      <div class="opt"><div>Synchro automatique<small>en arrière-plan</small></div><label class="switch"><input type="checkbox" id="oAuto"><span></span></label></div>
-      <div class="opt"><div>Répercuter les modifications<small>titre, horaires, lieu…</small></div><label class="switch"><input type="checkbox" id="oUpdates"><span></span></label></div>
-      <div class="opt"><div>Répercuter les suppressions<small>supprime aussi dans Google</small></div><label class="switch"><input type="checkbox" id="oDeletes"><span></span></label></div>
-      <label for="oInterval">Fréquence</label>
+      <p class="sub">Applied to upcoming syncs.</p>
+      <div class="opt"><div>Automatic sync<small>in the background</small></div><label class="switch"><input type="checkbox" id="oAuto"><span></span></label></div>
+      <div class="opt"><div>Propagate changes<small>title, times, location…</small></div><label class="switch"><input type="checkbox" id="oUpdates"><span></span></label></div>
+      <div class="opt"><div>Propagate deletions<small>also deletes in Google</small></div><label class="switch"><input type="checkbox" id="oDeletes"><span></span></label></div>
+      <label for="oInterval">Frequency</label>
       <select id="oInterval">
-        <option value="5">Toutes les 5 min</option><option value="15">Toutes les 15 min</option>
-        <option value="30">Toutes les 30 min</option><option value="60">Toutes les heures</option>
-        <option value="180">Toutes les 3 h</option>
+        <option value="5">Every 5 min</option><option value="15">Every 15 min</option>
+        <option value="30">Every 30 min</option><option value="60">Every hour</option>
+        <option value="180">Every 3 hours</option>
       </select>
       <div class="two">
-        <div><label for="oPast">Jours passés</label><input id="oPast" type="number" min="0" max="3650"></div>
-        <div><label for="oFuture">Jours à venir</label><input id="oFuture" type="number" min="1" max="3650"></div>
+        <div><label for="oPast">Past days</label><input id="oPast" type="number" min="0" max="3650"></div>
+        <div><label for="oFuture">Future days</label><input id="oFuture" type="number" min="1" max="3650"></div>
       </div>
-      <button class="btn ghost" id="saveOptions" style="margin-top:14px;width:100%">Enregistrer les options</button>
+      <button class="btn ghost" id="saveOptions" style="margin-top:14px;width:100%">Save options</button>
     </section>
 
     <section class="card c12">
       <div class="row" style="justify-content:space-between">
-        <div><h2>Doublons</h2><p class="sub">Repère les événements copiés plusieurs fois dans Google par la synchro. Une copie de chacun est toujours conservée ; tes autres événements ne sont jamais touchés.</p></div>
+        <div><h2>Duplicates</h2><p class="sub">Finds events the sync copied more than once into Google. One copy of each is always kept; your other events are never touched.</p></div>
         <div class="row">
-          <button class="btn ghost" id="dupScan"><span class="spin"></span><span>Rechercher</span></button>
-          <button class="btn" id="dupClean" hidden><span class="spin"></span><span>Supprimer</span></button>
+          <button class="btn ghost" id="dupScan"><span class="spin"></span><span>Scan</span></button>
+          <button class="btn" id="dupClean" hidden><span class="spin"></span><span>Delete</span></button>
         </div>
       </div>
       <div id="dupResult"></div>
     </section>
 
     <section class="card c12">
-      <h2>Historique</h2>
+      <h2>History</h2>
       <div class="tbl"><table>
-        <thead><tr><th>Date</th><th>État</th><th>Ajoutés</th><th>Modifiés</th><th>Supprimés</th><th>Inchangés</th><th>Échecs</th><th>Durée</th><th>Détail</th></tr></thead>
-        <tbody id="history"><tr><td colspan="9" class="msg">Aucune synchronisation pour l’instant.</td></tr></tbody>
+        <thead><tr><th>Date</th><th>Status</th><th>Added</th><th>Updated</th><th>Deleted</th><th>Unchanged</th><th>Failed</th><th>Duration</th><th>Details</th></tr></thead>
+        <tbody id="history"><tr><td colspan="9" class="msg">No sync yet.</td></tr></tbody>
       </table></div>
     </section>
   </div>
@@ -188,7 +188,7 @@ function toast(msg, bad) {
 async function api(url, opts = {}) {
   const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", "X-Requested-With": "fetch", ...(opts.headers || {}) } });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error(d.error || "Erreur"); e.reauth = d.reauth; throw e; }
+  if (!r.ok) { const e = new Error(d.error || "Error"); e.reauth = d.reauth; throw e; }
   return d;
 }
 async function busy(btn, fn) {
@@ -198,37 +198,37 @@ async function busy(btn, fn) {
 const rel = iso => {
   if (!iso) return "—";
   const diff = (new Date(iso) - Date.now()) / 60000, a = Math.abs(diff);
-  const f = new Intl.RelativeTimeFormat("fr", { numeric: "auto" });
-  if (a < 1) return diff < 0 ? "à l’instant" : "imminente";
+  const f = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (a < 1) return diff < 0 ? "just now" : "any moment";
   if (a < 60) return f.format(Math.round(diff), "minute");
   if (a < 1440) return f.format(Math.round(diff / 60), "hour");
   return f.format(Math.round(diff / 1440), "day");
 };
-const fmt = iso => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+const fmt = iso => new Date(iso).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const STATUS = { success: ["ok", "Réussie"], partial: ["warn", "Partielle"], error: ["bad", "Erreur"] };
+const STATUS = { success: ["ok", "Success"], partial: ["warn", "Partial"], error: ["bad", "Error"] };
 
 function renderStatus() {
   const s = state;
   $("appleConnected").hidden = !s.appleConnected; $("appleForm").hidden = s.appleConnected;
   $("appleIdLabel").textContent = s.appleId || "";
   $("googleConnected").hidden = !s.googleConnected; $("googleForm").hidden = s.googleConnected;
-  $("stTracked").textContent = s.tracked.toLocaleString("fr-FR");
+  $("stTracked").textContent = s.tracked.toLocaleString("en-GB");
 
   const last = s.history[0];
   $("stLast").textContent = last ? rel(last.at) : "Jamais";
   $("stLastSub").textContent = last ? `${STATUS[last.status]?.[1] || last.status} · +${last.created} ~${last.updated || 0} −${last.deleted || 0}` : "";
-  $("stNext").textContent = s.options.autoSync ? rel(s.nextRunAt) : "Désactivée";
-  $("stNextSub").textContent = s.options.autoSync ? `toutes les ${s.options.intervalMinutes} min` : "synchro manuelle uniquement";
+  $("stNext").textContent = s.options.autoSync ? rel(s.nextRunAt) : "Disabled";
+  $("stNextSub").textContent = s.options.autoSync ? `every ${s.options.intervalMinutes} min` : "manual sync only";
 
   const chip = $("runChip"), ready = s.appleConnected && s.googleConnected && s.mappings.some(m => m.enabled);
   chip.className = "chip " + (s.running ? "warn live" : ready ? "ok" : "");
-  chip.lastElementChild.textContent = s.running ? "Synchronisation…" : ready ? "Prêt" : "Configuration incomplète";
+  chip.lastElementChild.textContent = s.running ? "Syncing…" : ready ? "Ready" : "Setup incomplete";
   $("syncBtn").disabled = !ready || s.running;
 
   $("oAuto").checked = s.options.autoSync; $("oUpdates").checked = s.options.propagateUpdates;
   $("oDeletes").checked = s.options.propagateDeletions;
-  const iv = $("oInterval"); if (![...iv.options].some(o => +o.value === s.options.intervalMinutes)) iv.add(new Option(`Toutes les ${s.options.intervalMinutes} min`, s.options.intervalMinutes));
+  const iv = $("oInterval"); if (![...iv.options].some(o => +o.value === s.options.intervalMinutes)) iv.add(new Option(`Every ${s.options.intervalMinutes} min`, s.options.intervalMinutes));
   iv.value = s.options.intervalMinutes;
   if (document.activeElement !== $("oPast")) $("oPast").value = s.options.pastDays;
   if (document.activeElement !== $("oFuture")) $("oFuture").value = s.options.futureDays;
@@ -236,7 +236,7 @@ function renderStatus() {
   $("history").innerHTML = s.history.length ? s.history.map(h => {
     const [k, l] = STATUS[h.status] || ["", h.status];
     return `<tr><td>${fmt(h.at)}</td><td><span class="chip ${k}"><i></i>${l}</span></td><td>${h.created}</td><td>${h.updated || 0}</td><td>${h.deleted || 0}</td><td>${h.skipped}</td><td>${h.failed}</td><td>${h.duration_ms ? (h.duration_ms / 1000).toFixed(1) + " s" : "—"}</td><td class="msg">${esc(h.message)}</td></tr>`;
-  }).join("") : `<tr><td colspan="9" class="msg">Aucune synchronisation pour l’instant.</td></tr>`;
+  }).join("") : `<tr><td colspan="9" class="msg">No sync yet.</td></tr>`;
 }
 
 function renderCalendars() {
@@ -244,18 +244,18 @@ function renderCalendars() {
   if (!calendars) return;
   const banner = $("banner");
   banner.style.display = calendars.googleReauth ? "block" : "none";
-  banner.innerHTML = calendars.googleReauth ? `${esc(calendars.googleError)} <a href="/auth/google">Reconnecter Google</a>` : "";
+  banner.innerHTML = calendars.googleReauth ? `${esc(calendars.googleError)} <a href="/auth/google">Reconnect Google</a>` : "";
   if (!calendars.apple.length) {
-    box.innerHTML = `<div class="empty">${esc(calendars.appleError || "Aucun calendrier iCloud trouvé.")}</div>`; return;
+    box.innerHTML = `<div class="empty">${esc(calendars.appleError || "No iCloud calendar found.")}</div>`; return;
   }
-  const targets = calendars.google.length ? calendars.google : [{ id: "primary", name: "Agenda principal", primary: true }];
+  const targets = calendars.google.length ? calendars.google : [{ id: "primary", name: "Primary calendar", primary: true }];
   box.innerHTML = draft.map((m, i) => `
     <div class="cal ${m.enabled ? "" : "off"}">
-      <label class="switch" title="Synchroniser ce calendrier"><input type="checkbox" data-i="${i}" data-k="enabled" ${m.enabled ? "checked" : ""}><span></span></label>
+      <label class="switch" title="Sync this calendar"><input type="checkbox" data-i="${i}" data-k="enabled" ${m.enabled ? "checked" : ""}><span></span></label>
       <div class="row" style="gap:10px;min-width:0;flex-wrap:nowrap"><span class="dot" style="background:${esc(m.sourceColor || "")}"></span><span class="name">${esc(m.sourceName)}</span></div>
       <span class="arrow">→</span>
-      <select data-i="${i}" data-k="targetId" ${m.enabled ? "" : "disabled"} aria-label="Agenda Google cible">
-        ${targets.map(t => `<option value="${esc(t.id)}" ${t.id === m.targetId || (t.primary && m.targetId === "primary") ? "selected" : ""}>${esc(t.name)}${t.primary ? " (principal)" : ""}</option>`).join("")}
+      <select data-i="${i}" data-k="targetId" ${m.enabled ? "" : "disabled"} aria-label="Target Google calendar">
+        ${targets.map(t => `<option value="${esc(t.id)}" ${t.id === m.targetId || (t.primary && m.targetId === "primary") ? "selected" : ""}>${esc(t.name)}${t.primary ? " (primary)" : ""}</option>`).join("")}
       </select>
     </div>`).join("");
 }
@@ -279,40 +279,40 @@ $("calList").addEventListener("change", e => {
 
 async function loadStatus() { state = await api("/api/status"); renderStatus(); }
 async function loadCalendars() {
-  if (!state.appleConnected) { calendars = null; $("calList").innerHTML = `<div class="empty">Connecte ton compte iCloud pour voir tes calendriers.</div>`; return; }
-  if (!calendars) $("calList").innerHTML = `<div class="empty">Chargement des calendriers…</div>`;
+  if (!state.appleConnected) { calendars = null; $("calList").innerHTML = `<div class="empty">Connect your iCloud account to see your calendars.</div>`; return; }
+  if (!calendars) $("calList").innerHTML = `<div class="empty">Loading calendars…</div>`;
   calendars = await api("/api/calendars"); buildDraft(); renderCalendars();
 }
 
 $("appleForm").onsubmit = e => { e.preventDefault(); busy($("appleSave"), async () => {
   await api("/api/apple", { method: "POST", body: JSON.stringify({ appleId: $("appleId").value, appPassword: $("appPassword").value }) });
-  $("appPassword").value = ""; toast("iCloud connecté"); await loadStatus(); await loadCalendars();
+  $("appPassword").value = ""; toast("iCloud connected"); await loadStatus(); await loadCalendars();
 }); };
 $("appleLogout").onclick = () => busy($("appleLogout"), async () => {
-  if (!confirm("Supprimer les identifiants iCloud enregistrés ?")) return;
+  if (!confirm("Delete the saved iCloud credentials?")) return;
   await api("/api/apple", { method: "DELETE" }); await loadStatus(); await loadCalendars();
 });
 $("googleLogout").onclick = () => busy($("googleLogout"), async () => {
-  if (!confirm("Déconnecter Google et révoquer l’accès ?")) return;
+  if (!confirm("Disconnect Google and revoke access?")) return;
   await api("/api/google", { method: "DELETE" }); await loadStatus(); await loadCalendars();
 });
 $("reloadCals").onclick = () => busy($("reloadCals"), loadCalendars);
 $("saveMappings").onclick = () => busy($("saveMappings"), async () => {
   await api("/api/mappings", { method: "PUT", body: JSON.stringify({ mappings: draft }) });
-  toast(`${draft.filter(m => m.enabled).length} calendrier(s) sélectionné(s)`); await loadStatus(); setDirty(false);
+  toast(`${draft.filter(m => m.enabled).length} calendar(s) selected`); await loadStatus(); setDirty(false);
 });
 $("saveOptions").onclick = () => busy($("saveOptions"), async () => {
   await api("/api/options", { method: "PUT", body: JSON.stringify({
     autoSync: $("oAuto").checked, propagateUpdates: $("oUpdates").checked, propagateDeletions: $("oDeletes").checked,
     intervalMinutes: +$("oInterval").value, pastDays: +$("oPast").value, futureDays: +$("oFuture").value }) });
-  toast("Options enregistrées"); await loadStatus();
+  toast("Options saved"); await loadStatus();
 });
-$("oDeletes").onchange = e => { if (e.target.checked && !confirm("Les événements supprimés dans iCloud seront aussi supprimés dans Google. Continuer ?")) e.target.checked = false; };
+$("oDeletes").onchange = e => { if (e.target.checked && !confirm("Events deleted in iCloud will also be deleted in Google. Continue?")) e.target.checked = false; };
 $("syncBtn").onclick = () => busy($("syncBtn"), async () => {
   state.running = true; renderStatus();
   try {
     const d = await api("/api/sync", { method: "POST" });
-    toast(`Terminé : +${d.created} ajoutés · ${d.updated} modifiés · ${d.deleted} supprimés${d.failed ? ` · ${d.failed} échecs` : ""}`, d.failed > 0);
+    toast(`Done: +${d.created} added · ${d.updated} updated · ${d.deleted} deleted${d.failed ? ` · ${d.failed} failed` : ""}`, d.failed > 0);
   } finally { await loadStatus(); }
 });
 
@@ -328,39 +328,39 @@ function renderDuplicates(d) {
   dupCount = d.count;
   const clean = $("dupClean");
   clean.hidden = !d.count;
-  clean.lastElementChild.textContent = `Supprimer ${d.count} doublon${d.count > 1 ? "s" : ""}`;
+  clean.lastElementChild.textContent = `Delete ${d.count} duplicate${d.count > 1 ? "s" : ""}`;
   if (!d.count) {
-    $("dupResult").innerHTML = `<div class="empty">Aucun doublon parmi ${d.scanned.toLocaleString("fr-FR")} événements synchronisés.</div>`;
+    $("dupResult").innerHTML = `<div class="empty">No duplicates among ${d.scanned.toLocaleString("en-GB")} synced events.</div>`;
     return;
   }
-  const more = d.count > d.items.length ? `<p class="note">… et ${d.count - d.items.length} autres.</p>` : "";
-  $("dupResult").innerHTML = `<p class="note" style="margin:0 0 8px">${d.count} copie(s) en trop sur ${d.scanned.toLocaleString("fr-FR")} événements synchronisés.</p>
-    <div class="tbl"><table><thead><tr><th>Date</th><th>Événement</th><th>Copie supprimée dans</th><th>Copie conservée dans</th></tr></thead><tbody>
-    ${d.items.map(i => `<tr><td>${i.start ? new Date(i.start).toLocaleDateString("fr-FR") : "—"}</td><td class="msg" style="color:var(--fg)">${esc(i.summary)}</td><td>${esc(i.calendarName)}</td><td>${esc(i.keptIn)}</td></tr>`).join("")}
+  const more = d.count > d.items.length ? `<p class="note">… and ${d.count - d.items.length} more.</p>` : "";
+  $("dupResult").innerHTML = `<p class="note" style="margin:0 0 8px">${d.count} extra copy(ies) among ${d.scanned.toLocaleString("en-GB")} synced events.</p>
+    <div class="tbl"><table><thead><tr><th>Date</th><th>Event</th><th>Copy deleted from</th><th>Copy kept in</th></tr></thead><tbody>
+    ${d.items.map(i => `<tr><td>${i.start ? new Date(i.start).toLocaleDateString("en-GB") : "—"}</td><td class="msg" style="color:var(--fg)">${esc(i.summary)}</td><td>${esc(i.calendarName)}</td><td>${esc(i.keptIn)}</td></tr>`).join("")}
     </tbody></table></div>${more}`;
 }
 function googleFailure(e) {
   if (!e.reauth) return;
   const banner = $("banner");
   banner.style.display = "block";
-  banner.innerHTML = `${esc(e.message)} <a href="/auth/google">Reconnecter Google</a>`;
+  banner.innerHTML = `${esc(e.message)} <a href="/auth/google">Reconnect Google</a>`;
 }
 $("dupScan").onclick = () => busy($("dupScan"), async () => {
-  $("dupResult").innerHTML = `<div class="empty">Analyse de tes agendas Google…</div>`;
+  $("dupResult").innerHTML = `<div class="empty">Scanning your Google calendars…</div>`;
   try { renderDuplicates(await api("/api/duplicates")); }
   catch (e) { $("dupResult").innerHTML = ""; googleFailure(e); throw e; }
 });
 $("dupClean").onclick = () => busy($("dupClean"), async () => {
-  if (!confirm(`Supprimer définitivement ${dupCount} copie(s) en trop de Google Agenda ? Une copie de chaque événement est conservée.`)) return;
+  if (!confirm(`Permanently delete ${dupCount} extra copy(ies) from Google Calendar? One copy of each event is kept.`)) return;
   const d = await api("/api/duplicates/clean", { method: "POST" });
-  toast(`${d.deleted} doublon(s) supprimé(s)${d.failed ? ` · ${d.failed} échec(s)` : ""}`, d.failed > 0);
+  toast(`${d.deleted} duplicate(s) deleted${d.failed ? ` · ${d.failed} failed` : ""}`, d.failed > 0);
   renderDuplicates(await api("/api/duplicates"));
   await loadStatus();
 });
 
 const q = new URLSearchParams(location.search);
-if (q.has("error")) toast("La connexion Google a échoué. Vérifie la configuration OAuth.", true);
-if (q.get("google") === "connected") toast("Google connecté");
+if (q.has("error")) toast("Google sign-in failed. Check the OAuth configuration.", true);
+if (q.get("google") === "connected") toast("Google connected");
 if (q.size) history.replaceState(null, "", "/");
 
 (async () => {

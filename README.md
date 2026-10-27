@@ -1,42 +1,44 @@
-# CalSync — iCloud → Google Agenda
+<div align="center">
 
-Petit serveur Node.js auto‑hébergé qui copie automatiquement les événements de **tes calendriers iCloud** (ceux de l'iPhone, de l'iPad et du Mac) vers **Google Agenda**.
+# CalSync
 
-- **Tu choisis les calendriers** : active ou désactive chaque calendrier iCloud et choisis vers quel agenda Google il est envoyé (principal, « Travail », « Famille »…).
-- **Modifications répercutées** : un changement de titre, d'horaire ou de lieu est mis à jour dans Google.
-- **Suppressions (facultatif)** : un événement supprimé dans iCloud peut aussi être supprimé dans Google.
-- **Synchronisation automatique** : la fréquence (5 min à 3 h) et la période couverte (jours passés et à venir) se règlent dans l'interface.
-- **Secrets chiffrés** : les identifiants Apple et les jetons Google sont chiffrés en AES‑256‑GCM dans une base SQLite locale.
-- **Interface moderne** : tableau de bord clair ou sombre, historique des synchronisations, mise en page adaptée au mobile.
+**Your iCloud calendars, in Google Calendar. Automatically.**
 
-> La synchronisation va **dans un seul sens**, d'iCloud vers Google. Les changements faits dans Google ne sont jamais renvoyés vers iCloud.
+A small self‑hosted server that copies events from your iPhone, iPad and Mac
+to Google Calendar: you pick the calendars, it takes care of the rest.
+
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-000000?style=flat-square&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?style=flat-square&logo=express&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-local-000000?style=flat-square&logo=sqlite&logoColor=white)
+![Google Calendar API](https://img.shields.io/badge/Google_Calendar-API_v3-000000?style=flat-square&logo=googlecalendar&logoColor=white)
+![MIT License](https://img.shields.io/badge/license-MIT-000000?style=flat-square)
+
+[Quick start](#quick-start) ·
+[Features](#features) ·
+[Google setup](#google-cloud-setup) ·
+[How it works](#under-the-hood) ·
+[FAQ](#faq)
+
+</div>
 
 ---
 
-## Prérequis
+## Features
 
-- **Node.js 18 ou plus récent**
-- Un **compte Apple** avec Calendrier activé dans iCloud (Réglages → [ton nom] → iCloud → Calendrier)
-- Un **mot de passe spécifique à l'app** Apple ([appleid.apple.com](https://appleid.apple.com) → Connexion et sécurité → Mots de passe pour app)
-- Un **projet Google Cloud** avec l'API Google Calendar activée
+|  |  |
+|---|---|
+| **Pick your calendars** | Enable each iCloud calendar individually and send it to the Google calendar of your choice (primary, "Work", "Family"…). |
+| **Zero duplicates** | Before creating an event, the sync checks whether it already exists in Google and adopts it instead of copying it twice. |
+| **Changes follow** | Title, time, location or description changed in iCloud? Google is updated. |
+| **Deletions (optional)** | An event deleted in iCloud can also disappear from Google. |
+| **Duplicate cleanup** | A dedicated card finds extra copies and deletes them in one click, without ever touching your own events. |
+| **Fully automatic** | Frequency from 5 min to 3 h and the covered time range are set from the UI. |
+| **Encrypted secrets** | Apple credentials and Google tokens are encrypted with AES‑256‑GCM and stored only on your machine. |
+| **Clean interface** | Black and white dashboard, light or dark theme, sync history, mobile‑friendly. |
 
-> **Attention :** seuls les calendriers **synchronisés avec iCloud** sont accessibles. Ceux qui restent uniquement sur l'appareil (« Sur mon iPhone ») ou qui viennent d'un autre compte (Exchange, Google…) ne sont pas lus.
+> Sync is **one‑way**: from iCloud to Google. Nothing is ever written to iCloud.
 
-## 1. Configurer Google Cloud
-
-1. Ouvre la [console Google Cloud](https://console.cloud.google.com/), puis crée ou sélectionne un projet.
-2. **API et services → Bibliothèque** : active **Google Calendar API**.
-3. **Écran de consentement OAuth** : choisis le type *Externe* et ajoute ton adresse Gmail dans **Utilisateurs test**.
-   Tant que l'application reste en mode *Test*, Google invalide la connexion au bout de **7 jours** et il faut reconnecter Google. Pour l'éviter, clique sur **Publier l'application** (passage en *Production*). Pour un usage personnel, aucune validation par Google n'est nécessaire : un simple avertissement s'affiche au moment de la connexion.
-4. **Identifiants → Créer → ID client OAuth**, type **Application Web**.
-5. Dans **URI de redirection autorisés**, ajoute `http://localhost:3000/auth/google/callback`.
-6. Copie le *Client ID* et le *Client secret*.
-
-L'application demande deux autorisations :
-- `calendar.events` pour créer, modifier et supprimer les événements synchronisés ;
-- `calendar.calendarlist.readonly` pour lister tes agendas afin que tu puisses choisir une destination.
-
-## 2. Installer et lancer
+## Quick start
 
 ```bash
 git clone git@github.com:4tocall/ios-google-calendar-auto-sync.git
@@ -45,81 +47,157 @@ npm install
 cp .env.example .env
 ```
 
-Remplis `.env`. Pour générer `SESSION_SECRET` et `ENCRYPTION_KEY`, lance deux fois la commande suivante :
+Fill in `.env` (see [Google Cloud setup](#google-cloud-setup)), then generate `SESSION_SECRET` and `ENCRYPTION_KEY` by running this twice:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-> **Garde précieusement `ENCRYPTION_KEY`**. Si tu la perds, les identifiants enregistrés ne pourront plus être déchiffrés et il faudra reconnecter les deux comptes.
-
-Ensuite :
+And you're off:
 
 ```bash
 npm start
 ```
 
-Pendant le développement, `npm run dev` redémarre le serveur automatiquement à chaque modification.
+Open **<http://localhost:3000>**, then:
 
-## 3. Utiliser l'interface
+1. **Connect iCloud** with your Apple ID and an [app‑specific password](https://appleid.apple.com).
+2. **Connect Google Calendar.**
+3. **Pick your calendars** and their destination Google calendar.
+4. Click **Sync now**, then let it run.
 
-Ouvre <http://localhost:3000>, puis :
+> **Keep `ENCRYPTION_KEY` safe.** Without it, the saved credentials can no longer be decrypted.
 
-1. **iCloud** : saisis ton identifiant Apple et le mot de passe spécifique à l'app. La connexion est testée immédiatement.
-2. **Google** : clique sur *Connecter Google Agenda* et accepte les autorisations.
-3. **Calendriers** : active ceux à synchroniser, choisis l'agenda Google de destination de chacun, puis clique sur *Enregistrer la sélection*.
-4. **Options** : règle la fréquence, la période couverte, et indique si les modifications et les suppressions doivent être répercutées.
-5. Clique sur **Synchroniser** pour lancer une première synchronisation, puis laisse le serveur tourner.
+## Requirements
 
-Si tu mets à jour depuis une ancienne version, clique sur **Réautoriser** dans la carte Google pour accorder la nouvelle permission de lecture de la liste d'agendas.
+- **Node.js 18** or later
+- An **Apple Account** with Calendar enabled in iCloud (Settings → your name → iCloud → Calendar)
+- An Apple **app‑specific password** (appleid.apple.com → Sign‑In and Security)
+- A **Google Cloud project** with the Google Calendar API enabled
 
-## Variables d'environnement
+Only calendars **synced with iCloud** are read. "On My iPhone" calendars or calendars from another account (Exchange, Google…) are not accessible.
 
-| Variable | Obligatoire | Description |
-|---|---|---|
-| `GOOGLE_CLIENT_ID` | Oui | ID client OAuth |
-| `GOOGLE_CLIENT_SECRET` | Oui | Secret client OAuth |
-| `GOOGLE_REDIRECT_URI` | Oui | Doit correspondre exactement à l'URI déclarée dans Google Cloud |
-| `SESSION_SECRET` | Oui | Chaîne aléatoire pour signer les cookies de session |
-| `ENCRYPTION_KEY` | Oui | 64 caractères hexadécimaux (clé AES‑256) |
-| `PORT` | | Port HTTP (par défaut `3000`) |
-| `SYNC_EVERY_MINUTES` | | Fréquence initiale, modifiable ensuite dans l'interface (par défaut `15`) |
-| `DB_PATH` | | Chemin de la base SQLite (par défaut `sync.sqlite`) |
-| `TZ` | | Fuseau horaire utilisé quand un événement n'en précise pas (par exemple `Europe/Paris`) |
+## Google Cloud setup
 
-## Fonctionnement
+<details>
+<summary><b>Create the OAuth credentials (5 minutes)</b></summary>
 
-1. Le serveur lit chaque calendrier iCloud sélectionné via **CalDAV** (`caldav.icloud.com`), limité à la période choisie.
-2. Chaque événement reçoit un identifiant stable, calculé à partir de l'URL du calendrier et de l'UID iCalendar, ce qui évite les doublons.
-3. Une empreinte du contenu permet de mettre à jour un événement seulement s'il a changé.
-4. Si tu changes l'agenda de destination d'un calendrier, ses événements sont déplacés.
-5. Les événements récurrents sont transmis avec leur règle `RRULE` et leurs exceptions `EXDATE`.
+<br>
 
-## Supprimer les doublons
+1. Open the [Google Cloud console](https://console.cloud.google.com/) and create a project.
+2. **APIs & Services → Library**: enable the **Google Calendar API**.
+3. **OAuth consent screen**: choose *External*, then add your Gmail address under **Test users**.
+4. **Credentials → Create → OAuth client ID**, type **Web application**.
+5. Under **Authorized redirect URIs**, add `http://localhost:3000/auth/google/callback`.
+6. Copy the *Client ID* and *Client secret* into `.env`.
 
-La carte **Doublons** recherche les événements que la synchro a copiés plusieurs fois dans Google (par exemple après un changement d'agenda de destination ou une ancienne version de l'outil). Clique sur **Rechercher** pour voir la liste, puis sur **Supprimer** pour l'appliquer.
+**Avoid being signed out every 7 days:** while the app stays in *Testing* mode, Google revokes access after a week. Click **Publish app** to move it to *Production*. For personal use no verification is needed: a simple warning shows up when you sign in.
 
-- Seuls les événements créés par la synchro sont concernés. Les événements que tu as créés toi‑même dans Google ne sont jamais touchés.
-- Pour chaque événement iCloud, une copie est conservée : celle que la synchro suit, sinon la plus récente.
+Requested scopes:
 
-## Limites connues
+- `calendar.events`: create, update and delete synced events;
+- `calendar.calendarlist.readonly`: list your calendars so you can pick a destination.
 
-- Les occurrences **modifiées individuellement** d'une série récurrente (`RECURRENCE-ID`) ne sont pas encore reportées. La série principale l'est.
-- Les rappels, les invités et les pièces jointes ne sont pas copiés.
-- Le serveur doit **rester allumé** pour que la synchronisation automatique fonctionne (Mac mini, Raspberry Pi, NAS, VPS…).
-- L'application est prévue pour **un seul utilisateur** en local. Avant de l'exposer sur Internet, ajoute au minimum HTTPS, une authentification devant l'interface, un stockage de sessions persistant et l'URI OAuth de production.
+</details>
 
-## Sécurité
+<details>
+<summary><b>Environment variables</b></summary>
 
-- N'utilise **jamais** ton mot de passe Apple principal. Révoque le mot de passe spécifique à l'app si tu n'utilises plus le service.
-- `.env` et `sync.sqlite*` sont exclus de Git. Ne les commite jamais.
-- Les requêtes d'écriture de l'API exigent un en‑tête `X-Requested-With`, ce qui protège contre les attaques CSRF simples.
-- Le bouton *Déconnecter* de Google révoque aussi le jeton côté Google.
+<br>
 
-## Conseils
+| Variable | Required | Description |
+|---|:---:|---|
+| `GOOGLE_CLIENT_ID` | yes | OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | yes | OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | yes | Must match the URI declared in Google Cloud |
+| `SESSION_SECRET` | yes | Random string used to sign cookies |
+| `ENCRYPTION_KEY` | yes | 64 hexadecimal characters (AES‑256 key) |
+| `PORT` | | HTTP port, `3000` by default |
+| `SYNC_EVERY_MINUTES` | | Initial frequency, `15` by default (can be changed in the UI) |
+| `DB_PATH` | | SQLite database, `sync.sqlite` by default |
+| `TZ` | | Default time zone for events without one, e.g. `Europe/Paris` |
 
-Fais un premier essai avec un **agenda Google de test** comme destination, vérifie le résultat, puis choisis ton agenda définitif.
+</details>
 
-## Licence
+## Under the hood
 
-Projet personnel, fourni tel quel, sans garantie.
+```text
+ iCloud (CalDAV)
+       |
+       |  events in the chosen time range
+       v
+ +-----------+        +------------------+
+ |  CalSync  | <----> | encrypted SQLite |
+ +-----------+        +------------------+
+       |
+       v
+ Already in Google?
+   |-- no ................ create
+   |-- yes, changed ...... update
+   '-- yes, unchanged .... nothing to do
+       |
+       v
+ Google Calendar
+```
+
+1. Each selected calendar is read over **CalDAV** (`caldav.icloud.com`), limited to the chosen time range.
+2. Each event gets a stable identifier derived from the calendar and the iCalendar UID.
+3. Before any creation, the target Google calendar is inspected: an event carrying that identifier, or with the same title at the same time, is **adopted** instead of duplicated.
+4. A content fingerprint avoids needless updates.
+5. Changing a calendar's destination **moves** its events.
+6. Recurring events are sent with their `RRULE` and `EXDATE` exceptions.
+
+## FAQ
+
+<details>
+<summary><b>I have duplicates in Google Calendar, what should I do?</b></summary>
+
+<br>
+
+Open the **Duplicates** card, click **Scan**, review the list, then click **Delete**. Only events created by the sync are affected, and one copy of each is always kept.
+
+</details>
+
+<details>
+<summary><b>"The Google connection has expired"</b></summary>
+
+<br>
+
+Your OAuth app is probably in *Testing* mode (access expires after 7 days). Click **Reconnect Google**, then publish the app in the Google Cloud console so you don't have to do it again.
+
+</details>
+
+<details>
+<summary><b>Can I use it from my phone?</b></summary>
+
+<br>
+
+Yes, on the same Wi‑Fi network: open `http://<your-computer-ip>:3000`. Just do the Google sign‑in from the computer, since Google redirects to `localhost`.
+
+</details>
+
+<details>
+<summary><b>Does the server need to stay on?</b></summary>
+
+<br>
+
+Yes, for automatic sync. A Mac mini, a Raspberry Pi, a NAS or a small VPS will do just fine.
+
+</details>
+
+## Known limitations
+
+- Occurrences **edited individually** within a recurring series (`RECURRENCE-ID`) are not carried over yet; the main series is.
+- Reminders, attendees and attachments are not copied.
+- Designed for **a single user, running locally**. Before exposing it to the Internet: HTTPS, authentication in front of the UI, persistent sessions and production OAuth URIs.
+
+## Security
+
+- **Never** use your main Apple Account password; revoke the app‑specific password if you stop using the service.
+- `.env` and `sync.sqlite*` are excluded from Git.
+- Write requests require the `X-Requested-With` header (CSRF protection).
+- *Disconnect* on the Google card also revokes the token on Google's side.
+
+## License
+
+[MIT](LICENSE) © 4tocall

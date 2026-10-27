@@ -10,11 +10,11 @@ const { createDAVClient } = require("tsdav");
 
 const required = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "SESSION_SECRET", "ENCRYPTION_KEY"];
 for (const k of required) if (!process.env[k]) {
-  console.error(`Variable manquante dans .env : ${k}`);
+  console.error(`Missing variable in .env: ${k}`);
   process.exit(1);
 }
 if (!/^[0-9a-fA-F]{64}$/.test(process.env.ENCRYPTION_KEY)) {
-  console.error("ENCRYPTION_KEY doit contenir exactement 64 caractères hexadécimaux.");
+  console.error("ENCRYPTION_KEY must contain exactly 64 hexadecimal characters.");
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ const GOOGLE_SCOPES = [
 const LOCAL_TZ = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 // ---------------------------------------------------------------------------
-// Stockage
+// Storage
 // ---------------------------------------------------------------------------
 const db = new Database(process.env.DB_PATH || "sync.sqlite");
 db.pragma("journal_mode = WAL");
@@ -40,7 +40,7 @@ db.exec(`
     message TEXT NOT NULL, created INTEGER DEFAULT 0, skipped INTEGER DEFAULT 0, failed INTEGER DEFAULT 0
   );
 `);
-// Migrations additives : les bases créées par la v2 restent compatibles.
+// Additive migrations: databases created by v2 remain compatible.
 const addColumn = (table, col, type) => {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
@@ -75,8 +75,8 @@ function get(key) {
   if (!row) return null;
   try { return decrypt(row.value); }
   catch {
-    // Valeur chiffrée avec une autre ENCRYPTION_KEY : on l’oublie pour que l’utilisateur se reconnecte.
-    console.warn(`Réglage « ${key} » illisible avec la clé actuelle : supprimé, reconnexion nécessaire.`);
+    // Value encrypted with another ENCRYPTION_KEY: drop it so the user reconnects.
+    console.warn(`Setting "${key}" cannot be decrypted with the current key: removed, reconnection required.`);
     db.prepare("DELETE FROM settings WHERE key=?").run(key);
     return null;
   }
@@ -98,11 +98,11 @@ const DEFAULT_OPTIONS = {
   propagateDeletions: false
 };
 const getOptions = () => ({ ...DEFAULT_OPTIONS, ...(get("options") || {}) });
-// mappings : [{ sourceUrl, sourceName, sourceColor, targetId, enabled }]
+// mappings: [{ sourceUrl, sourceName, sourceColor, targetId, enabled }]
 const getMappings = () => get("mappings") || [];
 
 // ---------------------------------------------------------------------------
-// Clients externes
+// External clients
 // ---------------------------------------------------------------------------
 function oauthClient() {
   return new google.auth.OAuth2(
@@ -112,7 +112,7 @@ function oauthClient() {
 }
 function getGoogleClient() {
   const tokens = get("google_tokens");
-  if (!tokens) throw new Error("Connecte ton compte Google avant de lancer la synchronisation.");
+  if (!tokens) throw new Error("Connect your Google account before syncing.");
   const client = oauthClient();
   client.setCredentials(tokens);
   client.on("tokens", fresh => put("google_tokens", { ...get("google_tokens"), ...fresh }));
@@ -120,7 +120,7 @@ function getGoogleClient() {
 }
 async function appleClient() {
   const creds = get("apple_credentials");
-  if (!creds) throw new Error("Configure d’abord le compte Apple / iCloud.");
+  if (!creds) throw new Error("Set up the Apple / iCloud account first.");
   return createDAVClient({
     serverUrl: "https://caldav.icloud.com",
     credentials: { username: creds.appleId, password: creds.appPassword },
@@ -135,13 +135,13 @@ async function listAppleCalendars() {
   const client = await appleClient();
   const cals = await client.fetchCalendars();
   return cals.filter(isEventCalendar).map(c => ({
-    url: c.url, name: c.displayName || "Calendrier Apple", color: appleColor(c)
+    url: c.url, name: c.displayName || "Apple calendar", color: appleColor(c)
   }));
 }
-// Jeton de rafraîchissement révoqué ou expiré (7 jours si l’app OAuth est en mode « Test »).
+// Refresh token revoked or expired (after 7 days while the OAuth app is in "Testing" mode).
 const isExpiredGrant = e => e?.message === "invalid_grant" || e?.response?.data?.error === "invalid_grant";
 function expiredGrantError() {
-  const err = new Error("La connexion Google a expiré. Reconnecte ton compte Google.");
+  const err = new Error("The Google connection has expired. Reconnect your Google account.");
   err.reauth = true;
   return err;
 }
@@ -155,7 +155,7 @@ async function listGoogleCalendars() {
   } catch (e) {
     if (isExpiredGrant(e)) throw expiredGrantError();
     if ([401, 403].includes(e.code)) {
-      const err = new Error("Accès à la liste des agendas Google refusé. Reconnecte ton compte Google pour accorder la nouvelle autorisation.");
+      const err = new Error("Access to the Google calendar list was denied. Reconnect your Google account to grant the new permission.");
       err.reauth = true;
       throw err;
     }
@@ -181,17 +181,17 @@ app.use(session({
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 8 * 60 * 60 * 1000 }
 }));
-// Protection CSRF simple : un formulaire tiers ne peut pas poser cet en-tête.
+// Simple CSRF protection: a third-party form cannot set this header.
 app.use("/api", (req, res, next) => {
   if (req.method !== "GET" && req.get("X-Requested-With") !== "fetch") {
-    return res.status(403).json({ error: "Requête refusée." });
+    return res.status(403).json({ error: "Request refused." });
   }
   next();
 });
 const wrap = fn => (req, res) => Promise.resolve(fn(req, res)).catch(e => {
   if (isExpiredGrant(e)) e = expiredGrantError();
   console.error(req.path, e.message);
-  res.status(e.status || 400).json({ error: e.message || "Erreur inattendue.", reauth: Boolean(e.reauth) });
+  res.status(e.status || 400).json({ error: e.message || "Unexpected error.", reauth: Boolean(e.reauth) });
 });
 
 app.get("/auth/google", (req, res) => {
@@ -203,7 +203,7 @@ app.get("/auth/google", (req, res) => {
 });
 app.get("/auth/google/callback", async (req, res) => {
   try {
-    if (!req.query.code || req.query.state !== req.session.oauthState) throw new Error("État OAuth invalide.");
+    if (!req.query.code || req.query.state !== req.session.oauthState) throw new Error("Invalid OAuth state.");
     const { tokens } = await oauthClient().getToken(String(req.query.code));
     put("google_tokens", { ...(get("google_tokens") || {}), ...tokens });
     delete req.session.oauthState;
@@ -232,14 +232,14 @@ app.get("/api/status", wrap(async (req, res) => {
   });
 }));
 
-// Apple : mot de passe spécifique à l’app, jamais le mot de passe principal.
+// Apple: app-specific password, never the main account password.
 app.post("/api/apple", wrap(async (req, res) => {
   const { appleId, appPassword } = req.body || {};
   if (typeof appleId !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(appleId.trim())) {
-    throw new Error("Saisis l’adresse e-mail de ton compte Apple.");
+    throw new Error("Enter your Apple Account email address.");
   }
   if (typeof appPassword !== "string" || appPassword.replace(/[\s-]/g, "").length < 16) {
-    throw new Error("Saisis un mot de passe spécifique à l’app (format xxxx-xxxx-xxxx-xxxx).");
+    throw new Error("Enter an app-specific password (format xxxx-xxxx-xxxx-xxxx).");
   }
   const previous = get("apple_credentials");
   put("apple_credentials", { appleId: appleId.trim(), appPassword: appPassword.trim() });
@@ -248,7 +248,7 @@ app.post("/api/apple", wrap(async (req, res) => {
     res.json({ ok: true, calendars });
   } catch {
     if (previous) put("apple_credentials", previous); else del("apple_credentials");
-    throw new Error("Connexion iCloud impossible. Vérifie l’identifiant, le mot de passe spécifique et que Calendrier est activé dans iCloud.");
+    throw new Error("Could not connect to iCloud. Check your Apple ID, the app-specific password, and that Calendar is enabled in iCloud.");
   }
 }));
 app.delete("/api/apple", (req, res) => { del("apple_credentials"); res.json({ ok: true }); });
@@ -272,7 +272,7 @@ app.get("/api/calendars", wrap(async (req, res) => {
 
 app.put("/api/mappings", wrap(async (req, res) => {
   const list = Array.isArray(req.body?.mappings) ? req.body.mappings : null;
-  if (!list || list.length > 100) throw new Error("Liste de calendriers invalide.");
+  if (!list || list.length > 100) throw new Error("Invalid calendar list.");
   const clean = list.map(m => ({
     sourceUrl: String(m.sourceUrl || ""),
     sourceName: String(m.sourceName || "").slice(0, 200),
@@ -303,8 +303,8 @@ app.put("/api/options", wrap(async (req, res) => {
 app.post("/api/sync", wrap(async (req, res) => res.json(await runSync())));
 
 // ---------------------------------------------------------------------------
-// Doublons : seuls les événements créés par la synchro (iosSyncSourceUid) sont concernés.
-// Pour chaque événement iCloud, on garde la copie suivie en base et on supprime les autres.
+// Duplicates: only events created by the sync (iosSyncSourceUid) are affected.
+// For each iCloud event, keep the copy tracked in the database and delete the others.
 // ---------------------------------------------------------------------------
 async function findDuplicates() {
   const gcal = google.calendar({ version: "v3", auth: getGoogleClient() });
@@ -325,7 +325,7 @@ async function findDuplicates() {
         const uid = e.extendedProperties?.private?.iosSyncSourceUid;
         if (!uid) continue;
         scanned++;
-        const copy = { id: e.id, calendarId: c.id, calendarName: c.name, summary: e.summary || "(Sans titre)",
+        const copy = { id: e.id, calendarId: c.id, calendarName: c.name, summary: e.summary || "(Untitled)",
           start: e.start?.dateTime || e.start?.date || null, updated: e.updated };
         bySource.set(uid, [...(bySource.get(uid) || []), copy]);
       }
@@ -350,12 +350,12 @@ app.get("/api/duplicates", wrap(async (req, res) => {
 }));
 
 app.post("/api/duplicates/clean", wrap(async (req, res) => {
-  if (running) { const e = new Error("Une synchronisation est en cours, réessaie dans un instant."); e.status = 409; throw e; }
+  if (running) { const e = new Error("A sync is in progress, try again in a moment."); e.status = 409; throw e; }
   running = true;
   const t0 = Date.now();
   let deleted = 0, failed = 0;
   try {
-    // On recalcule la liste au moment de supprimer : rien ne repose sur un aperçu périmé.
+    // Recompute the list at deletion time so nothing relies on a stale preview.
     const { gcal, toDelete } = await findDuplicates();
     for (const d of toDelete) {
       try {
@@ -365,10 +365,10 @@ app.post("/api/duplicates/clean", wrap(async (req, res) => {
         if ([404, 410].includes(err.code)) { deleted++; continue; }
         if (isExpiredGrant(err)) throw err;
         failed++;
-        console.error("Échec suppression doublon:", err.message);
+        console.error("Failed to delete duplicate:", err.message);
       }
     }
-    log(failed ? "partial" : "success", `Nettoyage des doublons : ${deleted} copie(s) supprimée(s).`,
+    log(failed ? "partial" : "success", `Duplicate cleanup: ${deleted} copy(ies) deleted.`,
       { deleted, failed, durationMs: Date.now() - t0 });
     res.json({ ok: true, deleted, failed });
   } finally {
@@ -377,7 +377,7 @@ app.post("/api/duplicates/clean", wrap(async (req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
-// Conversion iCalendar → Google
+// iCalendar → Google conversion
 // ---------------------------------------------------------------------------
 const pad = n => String(n).padStart(2, "0");
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -391,14 +391,14 @@ function toGoogleEvent(e, sourceUid) {
   const tz = typeof e.start?.tz === "string" && !e.start.tz.startsWith("Etc/Unknown") ? e.start.tz : LOCAL_TZ;
 
   const event = {
-    summary: String(e.summary || "(Sans titre)"),
+    summary: String(e.summary || "(Untitled)"),
     description: e.description ? String(e.description) : undefined,
     location: e.location ? String(e.location) : undefined,
     transparency: e.transparency === "TRANSPARENT" ? "transparent" : undefined,
     extendedProperties: { private: { iosSyncSourceUid: sourceUid } }
   };
   if (allDay) {
-    // node-ical crée les dates « jour entier » à minuit local : on garde les composantes locales.
+    // node-ical creates all-day dates at local midnight: keep the local components.
     event.start = { date: ymd(start) };
     event.end = { date: ymd(end) };
   } else {
@@ -406,7 +406,7 @@ function toGoogleEvent(e, sourceUid) {
     event.end = { dateTime: end.toISOString(), timeZone: tz };
   }
   if (e.rrule) {
-    // Google n’accepte que les lignes RRULE/EXDATE (pas DTSTART).
+    // Google only accepts RRULE/EXDATE lines (not DTSTART).
     const rule = e.rrule.toString().split("\n").find(l => l.startsWith("RRULE:"));
     if (rule) {
       event.recurrence = [rule];
@@ -456,7 +456,7 @@ async function indexGoogleEvents(gcal, calendarId, from, to) {
 const hashOf = obj => crypto.createHash("sha256").update(JSON.stringify(obj)).digest("hex");
 
 // ---------------------------------------------------------------------------
-// Synchronisation
+// Sync
 // ---------------------------------------------------------------------------
 let running = false;
 let lastRunAt = 0;
@@ -468,14 +468,14 @@ function nextRunAt() {
 }
 
 async function runSync() {
-  if (running) { const e = new Error("Une synchronisation est déjà en cours."); e.status = 409; throw e; }
+  if (running) { const e = new Error("A sync is already in progress."); e.status = 409; throw e; }
   running = true;
   lastRunAt = Date.now();
   const t0 = Date.now();
   const s = { created: 0, updated: 0, deleted: 0, skipped: 0, failed: 0 };
   try {
     const mappings = getMappings().filter(m => m.enabled);
-    if (!mappings.length) throw new Error("Aucun calendrier sélectionné. Choisis au moins un calendrier iCloud à synchroniser.");
+    if (!mappings.length) throw new Error("No calendar selected. Choose at least one iCloud calendar to sync.");
     const opts = getOptions();
     const gcal = google.calendar({ version: "v3", auth: getGoogleClient() });
     const client = await appleClient();
@@ -491,25 +491,25 @@ async function runSync() {
 
     for (const m of mappings) {
       const calendar = remote.find(c => c.url === m.sourceUrl);
-      if (!calendar) { s.failed++; console.error(`Calendrier introuvable : ${m.sourceName}`); continue; }
+      if (!calendar) { s.failed++; console.error(`Calendar not found: ${m.sourceName}`); continue; }
       let objects;
       try {
         objects = await client.fetchCalendarObjects({
           calendar, timeRange: { start: from.toISOString(), end: to.toISOString() }, expand: false
         });
-      } catch (e) { s.failed++; console.error(`Lecture de ${m.sourceName} impossible:`, e.message); continue; }
+      } catch (e) { s.failed++; console.error(`Could not read ${m.sourceName}:`, e.message); continue; }
 
-      // Index des événements déjà présents dans l’agenda cible, pour ne jamais créer de doublon.
+      // Index the events already in the target calendar so a duplicate is never created.
       const existing = await indexGoogleEvents(gcal, m.targetId, from, to);
       const seen = new Set();
       for (const obj of objects || []) {
         if (!obj.data) continue;
         let parsed;
         try { parsed = ical.sync.parseICS(obj.data); } catch { s.failed++; continue; }
-        // Un objet = un événement maître (les exceptions RECURRENCE-ID sont ignorées par Google ici).
+        // One object = one master event (RECURRENCE-ID exceptions are skipped here).
         const events = Object.values(parsed).filter(e => e && e.type === "VEVENT" && e.uid && e.start && !e.recurrenceid);
         for (const e of events) {
-          // L’URL du calendrier fait partie de la clé : deux calendriers peuvent réutiliser un UID.
+          // The calendar URL is part of the key: two calendars can reuse a UID.
           const uid = crypto.createHash("sha256").update(`${calendar.url}|${e.uid}`).digest("hex");
           seen.add(uid);
           try {
@@ -530,13 +530,13 @@ async function runSync() {
                 s.updated++;
                 continue;
               } catch (err) {
-                if (![404, 410].includes(err.code)) throw err; // supprimé côté Google → on recrée
+                if (![404, 410].includes(err.code)) throw err; // deleted in Google → recreate it
               }
             } else if (prior && prior.google_event_id) {
-              // L’agenda cible a changé : on déplace l’événement.
+              // The target calendar changed: move the event.
               await gcal.events.delete({ calendarId: priorTarget, eventId: prior.google_event_id }).catch(() => {});
             }
-            // Déjà présent dans Google (même marqueur, ou même titre à la même heure) : on le reprend.
+            // Already in Google (same marker, or same title at the same time): adopt it.
             const match = existing.find(uid, event);
             if (match) {
               await gcal.events.update({ calendarId: m.targetId, eventId: match.id, requestBody: event });
@@ -551,13 +551,13 @@ async function runSync() {
           } catch (err) {
             if (isExpiredGrant(err)) throw err;
             s.failed++;
-            console.error(`Échec « ${e.summary} »:`, err.message);
+            console.error(`Failed "${e.summary}":`, err.message);
           }
         }
       }
 
       if (opts.propagateDeletions) {
-        // Seuls les événements de la fenêtre lue peuvent être considérés comme supprimés.
+        // Only events inside the fetched window can be considered deleted.
         const rows = db.prepare(`SELECT * FROM sync_state WHERE source_url=? AND event_start BETWEEN ? AND ?`)
           .all(calendar.url, from.toISOString(), to.toISOString());
         for (const r of rows) {
@@ -567,12 +567,12 @@ async function runSync() {
               .catch(err => { if (![404, 410].includes(err.code)) throw err; });
             db.prepare("DELETE FROM sync_state WHERE source_uid=?").run(r.source_uid);
             s.deleted++;
-          } catch (err) { s.failed++; console.error("Échec suppression:", err.message); }
+          } catch (err) { s.failed++; console.error("Failed to delete:", err.message); }
         }
       }
     }
     s.durationMs = Date.now() - t0;
-    const message = `${mappings.length} calendrier(s) synchronisé(s).`;
+    const message = `${mappings.length} calendar(s) synced.`;
     log(s.failed ? "partial" : "success", message, s);
     return { ok: true, calendars: mappings.length, ...s };
   } catch (err) {
@@ -585,17 +585,17 @@ async function runSync() {
   }
 }
 
-// Vérifie chaque minute si l’intervalle choisi dans l’interface est écoulé.
+// Check every minute whether the interval chosen in the UI has elapsed.
 cron.schedule("* * * * *", async () => {
   const o = getOptions();
   if (!o.autoSync || running) return;
   if (Date.now() - lastRunAt < o.intervalMinutes * 60000) return;
   if (!get("apple_credentials") || !get("google_tokens") || !getMappings().some(m => m.enabled)) return;
   try { await runSync(); }
-  catch (e) { console.error("Synchronisation automatique échouée:", e.message); }
+  catch (e) { console.error("Automatic sync failed:", e.message); }
 });
 
 const port = Number(process.env.PORT || 3000);
 app.listen(port, () => {
-  console.log(`Sync iCloud → Google Agenda : ${process.env.BASE_URL || `http://localhost:${port}`}`);
+  console.log(`CalSync iCloud → Google Calendar: ${process.env.BASE_URL || `http://localhost:${port}`}`);
 });
