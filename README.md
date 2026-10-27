@@ -27,6 +27,7 @@ Petit serveur Node.js auto‑hébergé qui copie automatiquement les événement
 1. Ouvre la [console Google Cloud](https://console.cloud.google.com/), puis crée ou sélectionne un projet.
 2. **API et services → Bibliothèque** : active **Google Calendar API**.
 3. **Écran de consentement OAuth** : choisis le type *Externe* et ajoute ton adresse Gmail dans **Utilisateurs test**.
+   Tant que l'application reste en mode *Test*, Google invalide la connexion au bout de **7 jours** et il faut reconnecter Google. Pour l'éviter, clique sur **Publier l'application** (passage en *Production*). Pour un usage personnel, aucune validation par Google n'est nécessaire : un simple avertissement s'affiche au moment de la connexion.
 4. **Identifiants → Créer → ID client OAuth**, type **Application Web**.
 5. Dans **URI de redirection autorisés**, ajoute `http://localhost:3000/auth/google/callback`.
 6. Copie le *Client ID* et le *Client secret*.
@@ -93,6 +94,13 @@ Si tu mets à jour depuis une ancienne version, clique sur **Réautoriser** dans
 3. Une empreinte du contenu permet de mettre à jour un événement seulement s'il a changé.
 4. Si tu changes l'agenda de destination d'un calendrier, ses événements sont déplacés.
 5. Les événements récurrents sont transmis avec leur règle `RRULE` et leurs exceptions `EXDATE`.
+
+## Supprimer les doublons
+
+La carte **Doublons** recherche les événements que la synchro a copiés plusieurs fois dans Google (par exemple après un changement d'agenda de destination ou une ancienne version de l'outil). Clique sur **Rechercher** pour voir la liste, puis sur **Supprimer** pour l'appliquer.
+
+- Seuls les événements créés par la synchro sont concernés. Les événements que tu as créés toi‑même dans Google ne sont jamais touchés.
+- Pour chaque événement iCloud, une copie est conservée : celle que la synchro suit, sinon la plus récente.
 
 ## Limites connues
 

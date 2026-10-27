@@ -156,6 +156,17 @@ td.msg{white-space:normal;color:var(--muted)}
     </section>
 
     <section class="card c12">
+      <div class="row" style="justify-content:space-between">
+        <div><h2>Doublons</h2><p class="sub">Repère les événements copiés plusieurs fois dans Google par la synchro. Une copie de chacun est toujours conservée ; tes autres événements ne sont jamais touchés.</p></div>
+        <div class="row">
+          <button class="btn ghost" id="dupScan"><span class="spin"></span><span>Rechercher</span></button>
+          <button class="btn" id="dupClean" hidden><span class="spin"></span><span>Supprimer</span></button>
+        </div>
+      </div>
+      <div id="dupResult"></div>
+    </section>
+
+    <section class="card c12">
       <h2>Historique</h2>
       <div class="tbl"><table>
         <thead><tr><th>Date</th><th>État</th><th>Ajoutés</th><th>Modifiés</th><th>Supprimés</th><th>Inchangés</th><th>Échecs</th><th>Durée</th><th>Détail</th></tr></thead>
@@ -233,7 +244,7 @@ function renderCalendars() {
   if (!calendars) return;
   const banner = $("banner");
   banner.style.display = calendars.googleReauth ? "block" : "none";
-  banner.innerHTML = calendars.googleReauth ? `Une nouvelle autorisation Google est nécessaire pour lister tes agendas. <a href="/auth/google">Réautoriser</a>` : "";
+  banner.innerHTML = calendars.googleReauth ? `${esc(calendars.googleError)} <a href="/auth/google">Reconnecter Google</a>` : "";
   if (!calendars.apple.length) {
     box.innerHTML = `<div class="empty">${esc(calendars.appleError || "Aucun calendrier iCloud trouvé.")}</div>`; return;
   }
@@ -311,6 +322,41 @@ $("themeBtn").onclick = () => {
   root.dataset.theme = dark ? "light" : "dark";
   try { localStorage.setItem("theme", root.dataset.theme); } catch {}
 };
+
+let dupCount = 0;
+function renderDuplicates(d) {
+  dupCount = d.count;
+  const clean = $("dupClean");
+  clean.hidden = !d.count;
+  clean.lastElementChild.textContent = `Supprimer ${d.count} doublon${d.count > 1 ? "s" : ""}`;
+  if (!d.count) {
+    $("dupResult").innerHTML = `<div class="empty">Aucun doublon parmi ${d.scanned.toLocaleString("fr-FR")} événements synchronisés.</div>`;
+    return;
+  }
+  const more = d.count > d.items.length ? `<p class="note">… et ${d.count - d.items.length} autres.</p>` : "";
+  $("dupResult").innerHTML = `<p class="note" style="margin:0 0 8px">${d.count} copie(s) en trop sur ${d.scanned.toLocaleString("fr-FR")} événements synchronisés.</p>
+    <div class="tbl"><table><thead><tr><th>Date</th><th>Événement</th><th>Copie supprimée dans</th><th>Copie conservée dans</th></tr></thead><tbody>
+    ${d.items.map(i => `<tr><td>${i.start ? new Date(i.start).toLocaleDateString("fr-FR") : "—"}</td><td class="msg" style="color:var(--fg)">${esc(i.summary)}</td><td>${esc(i.calendarName)}</td><td>${esc(i.keptIn)}</td></tr>`).join("")}
+    </tbody></table></div>${more}`;
+}
+function googleFailure(e) {
+  if (!e.reauth) return;
+  const banner = $("banner");
+  banner.style.display = "block";
+  banner.innerHTML = `${esc(e.message)} <a href="/auth/google">Reconnecter Google</a>`;
+}
+$("dupScan").onclick = () => busy($("dupScan"), async () => {
+  $("dupResult").innerHTML = `<div class="empty">Analyse de tes agendas Google…</div>`;
+  try { renderDuplicates(await api("/api/duplicates")); }
+  catch (e) { $("dupResult").innerHTML = ""; googleFailure(e); throw e; }
+});
+$("dupClean").onclick = () => busy($("dupClean"), async () => {
+  if (!confirm(`Supprimer définitivement ${dupCount} copie(s) en trop de Google Agenda ? Une copie de chaque événement est conservée.`)) return;
+  const d = await api("/api/duplicates/clean", { method: "POST" });
+  toast(`${d.deleted} doublon(s) supprimé(s)${d.failed ? ` · ${d.failed} échec(s)` : ""}`, d.failed > 0);
+  renderDuplicates(await api("/api/duplicates"));
+  await loadStatus();
+});
 
 const q = new URLSearchParams(location.search);
 if (q.has("error")) toast("La connexion Google a échoué. Vérifie la configuration OAuth.", true);

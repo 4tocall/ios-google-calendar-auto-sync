@@ -138,6 +138,13 @@ async function listAppleCalendars() {
     url: c.url, name: c.displayName || "Calendrier Apple", color: appleColor(c)
   }));
 }
+// Jeton de rafraîchissement révoqué ou expiré (7 jours si l’app OAuth est en mode « Test »).
+const isExpiredGrant = e => e?.message === "invalid_grant" || e?.response?.data?.error === "invalid_grant";
+function expiredGrantError() {
+  const err = new Error("La connexion Google a expiré. Reconnecte ton compte Google.");
+  err.reauth = true;
+  return err;
+}
 async function listGoogleCalendars() {
   const cal = google.calendar({ version: "v3", auth: getGoogleClient() });
   try {
@@ -146,6 +153,7 @@ async function listGoogleCalendars() {
       id: c.id, name: c.summaryOverride || c.summary, color: c.backgroundColor, primary: Boolean(c.primary)
     })).sort((a, b) => (b.primary - a.primary) || a.name.localeCompare(b.name));
   } catch (e) {
+    if (isExpiredGrant(e)) throw expiredGrantError();
     if ([401, 403].includes(e.code)) {
       const err = new Error("Accès à la liste des agendas Google refusé. Reconnecte ton compte Google pour accorder la nouvelle autorisation.");
       err.reauth = true;
@@ -181,6 +189,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 const wrap = fn => (req, res) => Promise.resolve(fn(req, res)).catch(e => {
+  if (isExpiredGrant(e)) e = expiredGrantError();
   console.error(req.path, e.message);
   res.status(e.status || 400).json({ error: e.message || "Erreur inattendue.", reauth: Boolean(e.reauth) });
 });
@@ -292,6 +301,80 @@ app.put("/api/options", wrap(async (req, res) => {
 }));
 
 app.post("/api/sync", wrap(async (req, res) => res.json(await runSync())));
+
+// ---------------------------------------------------------------------------
+// Doublons : seuls les événements créés par la synchro (iosSyncSourceUid) sont concernés.
+// Pour chaque événement iCloud, on garde la copie suivie en base et on supprime les autres.
+// ---------------------------------------------------------------------------
+async function findDuplicates() {
+  const gcal = google.calendar({ version: "v3", auth: getGoogleClient() });
+  const calendars = await listGoogleCalendars();
+  const tracked = new Map(db.prepare("SELECT source_uid, google_event_id FROM sync_state").all()
+    .map(r => [r.source_uid, r.google_event_id]));
+
+  const bySource = new Map();
+  let scanned = 0;
+  for (const c of calendars) {
+    let pageToken;
+    do {
+      const { data } = await gcal.events.list({
+        calendarId: c.id, maxResults: 2500, pageToken, showDeleted: false,
+        fields: "nextPageToken,items(id,summary,start,updated,extendedProperties/private/iosSyncSourceUid)"
+      });
+      for (const e of data.items || []) {
+        const uid = e.extendedProperties?.private?.iosSyncSourceUid;
+        if (!uid) continue;
+        scanned++;
+        const copy = { id: e.id, calendarId: c.id, calendarName: c.name, summary: e.summary || "(Sans titre)",
+          start: e.start?.dateTime || e.start?.date || null, updated: e.updated };
+        bySource.set(uid, [...(bySource.get(uid) || []), copy]);
+      }
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+  }
+
+  const toDelete = [];
+  for (const [uid, copies] of bySource) {
+    if (copies.length < 2) continue;
+    const keep = copies.find(c => c.id === tracked.get(uid))
+      || copies.slice().sort((a, b) => String(b.updated).localeCompare(String(a.updated)))[0];
+    for (const c of copies) if (c !== keep) toDelete.push({ ...c, keptIn: keep.calendarName });
+  }
+  toDelete.sort((a, b) => String(a.start).localeCompare(String(b.start)));
+  return { gcal, scanned, toDelete };
+}
+
+app.get("/api/duplicates", wrap(async (req, res) => {
+  const { scanned, toDelete } = await findDuplicates();
+  res.json({ scanned, count: toDelete.length, items: toDelete.slice(0, 200).map(({ id, calendarId, ...rest }) => rest) });
+}));
+
+app.post("/api/duplicates/clean", wrap(async (req, res) => {
+  if (running) { const e = new Error("Une synchronisation est en cours, réessaie dans un instant."); e.status = 409; throw e; }
+  running = true;
+  const t0 = Date.now();
+  let deleted = 0, failed = 0;
+  try {
+    // On recalcule la liste au moment de supprimer : rien ne repose sur un aperçu périmé.
+    const { gcal, toDelete } = await findDuplicates();
+    for (const d of toDelete) {
+      try {
+        await gcal.events.delete({ calendarId: d.calendarId, eventId: d.id });
+        deleted++;
+      } catch (err) {
+        if ([404, 410].includes(err.code)) { deleted++; continue; }
+        if (isExpiredGrant(err)) throw err;
+        failed++;
+        console.error("Échec suppression doublon:", err.message);
+      }
+    }
+    log(failed ? "partial" : "success", `Nettoyage des doublons : ${deleted} copie(s) supprimée(s).`,
+      { deleted, failed, durationMs: Date.now() - t0 });
+    res.json({ ok: true, deleted, failed });
+  } finally {
+    running = false;
+  }
+}));
 
 // ---------------------------------------------------------------------------
 // Conversion iCalendar → Google
@@ -421,6 +504,7 @@ async function runSync() {
             upsert.run({ ...row, gid: inserted.data.id });
             prior ? s.updated++ : s.created++;
           } catch (err) {
+            if (isExpiredGrant(err)) throw err;
             s.failed++;
             console.error(`Échec « ${e.summary} »:`, err.message);
           }
@@ -446,7 +530,8 @@ async function runSync() {
     const message = `${mappings.length} calendrier(s) synchronisé(s).`;
     log(s.failed ? "partial" : "success", message, s);
     return { ok: true, calendars: mappings.length, ...s };
-  } catch (e) {
+  } catch (err) {
+    const e = isExpiredGrant(err) ? expiredGrantError() : err;
     s.durationMs = Date.now() - t0;
     log("error", e.message, { ...s, failed: s.failed + 1 });
     throw e;
