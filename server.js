@@ -420,6 +420,39 @@ function toGoogleEvent(e, sourceUid) {
   }
   return { event, start };
 }
+const signature = (summary, start) => {
+  const when = start?.dateTime ? new Date(start.dateTime).getTime() : start?.date?.slice(0, 10);
+  return `${String(summary || "").trim().toLowerCase()}|${when}`;
+};
+
+async function indexGoogleEvents(gcal, calendarId, from, to) {
+  const byUid = new Map(), bySig = new Map(), claimed = new Set();
+  let pageToken;
+  do {
+    const { data } = await gcal.events.list({
+      calendarId, pageToken, maxResults: 2500, showDeleted: false, singleEvents: false,
+      timeMin: new Date(from.getTime() - 86400000).toISOString(),
+      timeMax: new Date(to.getTime() + 86400000).toISOString(),
+      fields: "nextPageToken,items(id,summary,start,extendedProperties/private/iosSyncSourceUid)"
+    });
+    for (const e of data.items || []) {
+      const uid = e.extendedProperties?.private?.iosSyncSourceUid;
+      if (uid && !byUid.has(uid)) byUid.set(uid, e);
+      const sig = signature(e.summary, e.start);
+      if (!bySig.has(sig)) bySig.set(sig, e);
+    }
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+  return {
+    find(uid, event) {
+      const hit = byUid.get(uid) || bySig.get(signature(event.summary, event.start));
+      if (!hit || claimed.has(hit.id)) return null;
+      claimed.add(hit.id);
+      return hit;
+    },
+    claim(id) { claimed.add(id); }
+  };
+}
 const hashOf = obj => crypto.createHash("sha256").update(JSON.stringify(obj)).digest("hex");
 
 // ---------------------------------------------------------------------------
@@ -466,6 +499,8 @@ async function runSync() {
         });
       } catch (e) { s.failed++; console.error(`Lecture de ${m.sourceName} impossible:`, e.message); continue; }
 
+      // Index des événements déjà présents dans l’agenda cible, pour ne jamais créer de doublon.
+      const existing = await indexGoogleEvents(gcal, m.targetId, from, to);
       const seen = new Set();
       for (const obj of objects || []) {
         if (!obj.data) continue;
@@ -481,6 +516,7 @@ async function runSync() {
             const { event, start } = toGoogleEvent(e, uid);
             const hash = hashOf({ event, target: m.targetId });
             const prior = selectState.get(uid);
+            if (prior?.google_event_id) existing.claim(prior.google_event_id);
             const row = { uid, name: m.sourceName, url: calendar.url, target: m.targetId, hash, start: start.toISOString(), now: new Date().toISOString() };
 
             if (prior && prior.content_hash === hash) { s.skipped++; continue; }
@@ -500,7 +536,16 @@ async function runSync() {
               // L’agenda cible a changé : on déplace l’événement.
               await gcal.events.delete({ calendarId: priorTarget, eventId: prior.google_event_id }).catch(() => {});
             }
+            // Déjà présent dans Google (même marqueur, ou même titre à la même heure) : on le reprend.
+            const match = existing.find(uid, event);
+            if (match) {
+              await gcal.events.update({ calendarId: m.targetId, eventId: match.id, requestBody: event });
+              upsert.run({ ...row, gid: match.id });
+              s.updated++;
+              continue;
+            }
             const inserted = await gcal.events.insert({ calendarId: m.targetId, requestBody: event });
+            existing.claim(inserted.data.id);
             upsert.run({ ...row, gid: inserted.data.id });
             prior ? s.updated++ : s.created++;
           } catch (err) {
